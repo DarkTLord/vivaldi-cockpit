@@ -1,0 +1,28 @@
+[Unit]
+Description=Vivaldi Bookmark Health Check (Adil)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '\
+  REPORT_DIR="$HOME/Documents/vivaldi-health"; \
+  mkdir -p "$REPORT_DIR"; \
+  TS=$(date +%%Y%%m%%d-%%H%%M%%S); \
+  REPORT="$REPORT_DIR/health-$TS.log"; \
+  /usr/bin/python3 $HOME/.local/bin/vc-bookmark-health.py > "$REPORT" 2>&1; \
+  DEAD_COUNT=$(grep -c "✗ Ölü" "$REPORT" || echo 0); \
+  if [ -f "$HOME/vivaldi-dead-bookmarks.txt" ]; then \
+    DEAD_LINES=$(wc -l < "$HOME/vivaldi-dead-bookmarks.txt"); \
+    cp "$HOME/vivaldi-dead-bookmarks.txt" "$REPORT_DIR/dead-$TS.txt"; \
+  else \
+    DEAD_LINES=0; \
+  fi; \
+  /usr/bin/notify-send -i applications-internet \
+    "🩺 Vivaldi Bookmark Health" \
+    "Yoxlama tamamlandı. Hesabat: $REPORT_DIR" \
+    -t 8000 || true; \
+  echo "[$(date)] Report saved to $REPORT"'
+
+[Install]
+WantedBy=default.target

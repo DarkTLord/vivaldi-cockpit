@@ -1,0 +1,147 @@
+#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+"""
+vc-categorize — AI ilə bookmark kateqoriyalaşdırma (Ollama).
+İstifadə:
+  vc-categorize                      # tələb (uncategorized)-ləri AI tərəfindən təklif et
+  vc-categorize --apply              # təklifləri tətbiq et (Vivaldi qapalı olmalıdır)
+  vc-categorize --model qwen3-coder  # fərqli model
+"""
+import json
+import argparse
+import time
+import subprocess
+import requests
+from pathlib import Path
+from rich.console import Console
+from rich.table import Table
+from rich.progress import track
+from rich.panel import Panel
+
+console = Console()
+HOME = Path.home()
+BOOKMARKS = HOME / ".config/vivaldi/Default/Bookmarks"
+SUGGESTIONS_FILE = HOME / ".cache/vc-categorize-suggestions.json"
+OLLAMA = "http://localhost:11434"
+
+# Existing categories (workspaces)
+CATEGORIES = {
+    "💻 Dev": "Software development, coding tools, localhost, repositories, package registries",
+    "🤖 AI Lab": "AI models (Claude, ChatGPT, etc), LLM tools, Hugging Face, AI APIs",
+    "🛡️ Security": "CVE, OSINT, exploit, pentest, hacking, threat intel, BlackArch, security",
+    "📚 Research": "Academic papers, arxiv, scholar, IEEE, ACM, scientific publications",
+    "🎨 Design": "UI/UX, Figma, Dribbble, design systems, fonts, icons, colors",
+    "📰 Pulse": "News, blogs, Hacker News, Lobsters, Reddit, tech aggregators",
+    "🧠 Brain": "Knowledge management, Notion, Obsidian, Wikipedia, archives, cheatsheets",
+    "💬 Social": "Twitter/X, Mastodon, Discord, Telegram, LinkedIn, social networks",
+    "🎬 Lounge": "YouTube, Spotify, Netflix, Twitch, music, video, entertainment",
+    "💰 Life": "Banking, shopping, travel, calendar, mail, personal services",
+}
+
+def collect_bookmarks(node, path="", out=None):
+    if out is None: out = []
+    if node.get("type") == "url":
+        out.append({
+            "name": node.get("name", ""), "url": node.get("url", ""),
+            "guid": node.get("guid"), "path": path
+        })
+    elif node.get("type") == "folder":
+        new_path = f"{path}/{node.get('name','?')}" if path else node.get('name','?')
+        for c in node.get("children", []): collect_bookmarks(c, new_path, out)
+    elif "roots" in node:
+        for r in node["roots"].values(): collect_bookmarks(r, "", out)
+    elif "children" in node:
+        for c in node["children"]: collect_bookmarks(c, path, out)
+    return out
+
+def ai_categorize(bm, model):
+    """Single bookmark → category via Ollama."""
+    cats_str = "\n".join(f"- {k}: {v}" for k, v in CATEGORIES.items())
+    prompt = f"""Classify this bookmark into ONE of these categories:
+{cats_str}
+
+Bookmark:
+  Name: {bm['name']}
+  URL: {bm['url']}
+
+Reply with ONLY the category emoji + name (e.g. "💻 Dev"). Nothing else."""
+
+    try:
+        r = requests.post(f"{OLLAMA}/api/generate",
+            json={"model": model, "prompt": prompt, "stream": False,
+                  "options": {"num_predict": 32, "temperature": 0.1}},
+            timeout=60)
+        result = r.json().get("response", "").strip().split("\n")[0].strip()
+        # Match against known categories
+        for cat in CATEGORIES:
+            if cat in result or cat.split(" ", 1)[1].lower() in result.lower():
+                return cat
+        return None
+    except Exception as e:
+        console.print(f"[red]✗ {e}[/red]")
+        return None
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--apply", action="store_true", help="Suggestion-ları tətbiq et")
+    parser.add_argument("--model", default="mistral:7b", help="Ollama model")
+    parser.add_argument("--limit", type=int, default=50, help="Max bookmark to categorize")
+    parser.add_argument("--only-uncat", action="store_true", help="Yalnız 'Other'/'Uncategorized' folder-də olanları")
+    args = parser.parse_args()
+
+    if args.apply:
+        if not SUGGESTIONS_FILE.exists():
+            console.print("[red]✗ Əvvəlcə suggestion yarat: vc-categorize[/red]")
+            return
+        if subprocess.run(["pgrep", "-f", "/opt/vivaldi/vivaldi-bin"], capture_output=True).returncode == 0:
+            console.print("[yellow]⚠ Vivaldi açıqdır. Bağlamadan tətbiq olunmaz.[/yellow]")
+            return
+        # Apply: this is complex tree manipulation, let's keep it simple — print for now
+        suggestions = json.loads(SUGGESTIONS_FILE.read_text())
+        console.print(f"[green]✓ {len(suggestions)} təklif yüklü[/green]")
+        console.print("[dim]Tam apply funksiyası gələcək versiyada — hazırda yalnız report mövcuddur.[/dim]")
+        return
+
+    # Generate suggestions
+    data = json.loads(BOOKMARKS.read_text())
+    bookmarks = collect_bookmarks(data)
+
+    if args.only_uncat:
+        bookmarks = [b for b in bookmarks if "uncategorized" in b["path"].lower() or b["path"] in ("", "Bookmarks")]
+
+    bookmarks = bookmarks[:args.limit]
+
+    console.print(Panel(
+        f"🤖 AI bookmark kateqoriyalaşdırma\n"
+        f"Model: [cyan]{args.model}[/cyan]\n"
+        f"Bookmark sayı: [yellow]{len(bookmarks)}[/yellow]\n"
+        f"Bu ~{len(bookmarks) * 2}-3 dəqiqə çəkəcək",
+        border_style="magenta"
+    ))
+
+    suggestions = []
+    for bm in track(bookmarks, description="🤖 Kateqoriyalaşdırılır..."):
+        cat = ai_categorize(bm, args.model)
+        if cat:
+            suggestions.append({"bookmark": bm, "category": cat})
+
+    SUGGESTIONS_FILE.write_text(json.dumps(suggestions, ensure_ascii=False, indent=2))
+
+    # Display report
+    table = Table(show_header=True, header_style="bold magenta", expand=True)
+    table.add_column("Bookmark", style="cyan", max_width=40)
+    table.add_column("Hazırkı yer", style="dim", max_width=25)
+    table.add_column("AI Təklifi", style="green")
+
+    for s in suggestions[:30]:
+        table.add_row(
+            s["bookmark"]["name"][:40],
+            s["bookmark"]["path"][:25],
+            s["category"]
+        )
+
+    console.print(table)
+    console.print(f"\n[green]✓ {len(suggestions)} təklif saxlanıldı: {SUGGESTIONS_FILE}[/green]")
+    console.print(f"[dim]Tətbiq etmək üçün: vc-categorize --apply (Vivaldi bağlı olmalıdır)[/dim]")
+
+if __name__ == "__main__":
+    main()

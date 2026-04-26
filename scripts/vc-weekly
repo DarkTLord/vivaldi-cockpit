@@ -1,0 +1,230 @@
+#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+"""
+vc-weekly — Vivaldi həftəlik konfiq raportu (Markdown + PDF).
+İstifadə:
+  vc-weekly                  # bugünkü vəziyyəti raport et
+  vc-weekly --pdf            # PDF kimi save (weasyprint ilə)
+  vc-weekly --auto           # systemd-dən: silent mode
+"""
+import json
+import sqlite3
+import subprocess
+import argparse
+import shutil
+from pathlib import Path
+from datetime import datetime, timedelta
+from collections import Counter
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+
+console = Console()
+HOME = Path.home()
+PREFS = HOME / ".config/vivaldi/Default/Preferences"
+BOOKMARKS = HOME / ".config/vivaldi/Default/Bookmarks"
+NOTES = HOME / ".config/vivaldi/Default/Notes"
+HISTORY = HOME / ".config/vivaldi/Default/History"
+WEBDATA = HOME / ".config/vivaldi/Default/Web Data"
+REPORT_DIR = HOME / "Documents/vivaldi-reports"
+REPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+def cnt_bookmarks():
+    if not BOOKMARKS.exists(): return 0, 0
+    data = json.loads(BOOKMARKS.read_text())
+    urls, folders = [0], [0]
+    def walk(n):
+        if n.get("type") == "url": urls[0] += 1
+        elif n.get("type") == "folder": folders[0] += 1
+        for c in n.get("children", []): walk(c)
+    for r in data.get("roots", {}).values(): walk(r)
+    return urls[0], folders[0]
+
+def cnt_search_engines():
+    try:
+        tmp = "/tmp/vc-wd-tmp.db"
+        shutil.copy(WEBDATA, tmp)
+        conn = sqlite3.connect(f"file:{tmp}?mode=ro", uri=True)
+        n = conn.execute("SELECT COUNT(*) FROM keywords WHERE LENGTH(keyword) <= 5").fetchone()[0]
+        conn.close()
+        Path(tmp).unlink(missing_ok=True)
+        return n
+    except Exception: return 0
+
+def cnt_extensions():
+    ext = HOME / ".config/vivaldi/Default/Extensions"
+    if not ext.exists(): return 0
+    return len([d for d in ext.iterdir() if d.is_dir()])
+
+def cnt_history_week():
+    if not HISTORY.exists(): return 0, []
+    try:
+        tmp = "/tmp/vc-hist-tmp.db"
+        shutil.copy(HISTORY, tmp)
+        conn = sqlite3.connect(f"file:{tmp}?mode=ro", uri=True)
+        cur = conn.cursor()
+        # Chrome time = microseconds since 1601-01-01
+        week_ago_us = int((datetime.now() - timedelta(days=7)).timestamp() + 11644473600) * 1_000_000
+        cur.execute("SELECT title, url, visit_count FROM urls WHERE last_visit_time > ? ORDER BY visit_count DESC LIMIT 20", (week_ago_us,))
+        top = cur.fetchall()
+        cur.execute("SELECT COUNT(*) FROM urls WHERE last_visit_time > ?", (week_ago_us,))
+        total = cur.fetchone()[0]
+        conn.close()
+        Path(tmp).unlink(missing_ok=True)
+        return total, top
+    except Exception as e:
+        return 0, []
+
+def cnt_notes():
+    if not NOTES.exists(): return 0, 0
+    data = json.loads(NOTES.read_text())
+    notes = [c for c in data.get("children", []) if c.get("type") == "note"]
+    encrypted = [n for n in notes if "BEGIN PGP MESSAGE" in (n.get("content") or "")]
+    return len(notes), len(encrypted)
+
+def vivaldi_status():
+    out = subprocess.run(["pgrep", "-f", "/opt/vivaldi/vivaldi-bin"], capture_output=True, text=True)
+    procs = len(out.stdout.strip().splitlines()) if out.stdout.strip() else 0
+    if procs == 0: return "❌ Qapalı", 0, 0
+    rss_out = subprocess.run(["ps", "-eo", "rss,comm"], capture_output=True, text=True).stdout
+    ram = sum(int(l.split()[0]) for l in rss_out.splitlines()[1:] if "vivaldi" in l) / 1024
+    return "✅ Aktiv", procs, ram
+
+def disk_usage():
+    out = subprocess.run(["du", "-sb", str(HOME / ".config/vivaldi")], capture_output=True, text=True).stdout
+    return int(out.split()[0]) / (1024 * 1024) if out else 0
+
+def workspaces():
+    try:
+        prefs = json.loads(PREFS.read_text())
+        ws = prefs.get("vivaldi", {}).get("workspaces", {}).get("list", [])
+        return [w.get("name", "?") for w in ws]
+    except Exception: return []
+
+def chained_commands_count():
+    try:
+        prefs = json.loads(PREFS.read_text())
+        return len(prefs.get("vivaldi", {}).get("chained_commands", {}).get("command_list", []))
+    except Exception: return 0
+
+def health_reports():
+    d = HOME / "Documents/vivaldi-health"
+    if not d.exists(): return []
+    return sorted(d.glob("health-*.log"), reverse=True)[:5]
+
+def render_markdown():
+    bm_urls, bm_folders = cnt_bookmarks()
+    se = cnt_search_engines()
+    ext = cnt_extensions()
+    hist_total, hist_top = cnt_history_week()
+    notes_n, notes_enc = cnt_notes()
+    status, procs, ram = vivaldi_status()
+    disk = disk_usage()
+    ws_list = workspaces()
+    chains = chained_commands_count()
+    health = health_reports()
+
+    lines = [
+        "# 📊 Vivaldi Həftəlik Hesabat — Adil",
+        "",
+        f"**Tarix:** {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"**Sistem:** Garuda Linux + Vivaldi 7.9 + Catppuccin Mocha",
+        "",
+        "## ⚡ Hazırkı Vəziyyət",
+        f"- **Status:** {status}",
+        f"- **Proseslər:** {procs}",
+        f"- **RAM:** {ram:.1f} MB",
+        f"- **Disk:** {disk:.0f} MB",
+        "",
+        "## 📚 Konfiqurasiya",
+        f"- **Bookmark URL:** {bm_urls}",
+        f"- **Bookmark folder:** {bm_folders}",
+        f"- **Search engine shortcuts:** {se}",
+        f"- **Extensions:** {ext}",
+        f"- **Workspaces:** {len(ws_list)}",
+        f"- **Notes:** {notes_n} ({notes_enc} şifrəli)",
+        f"- **Chained commands:** {chains}",
+        "",
+    ]
+    if ws_list:
+        lines.append("### Workspace siyahısı")
+        for w in ws_list:
+            lines.append(f"- {w}")
+        lines.append("")
+
+    lines += [
+        "## 📈 Bu Həftə (son 7 gün)",
+        f"- **Ziyarət olunmuş səhifə:** {hist_total}",
+        "",
+    ]
+    if hist_top:
+        lines.append("### Top 10 ziyarət olunan saytlar")
+        lines.append("")
+        lines.append("| # | Sayt | Ziyarət |")
+        lines.append("|---|------|---------|")
+        for i, (title, url, count) in enumerate(hist_top[:10], 1):
+            t = (title or "(başlıqsız)")[:50].replace("|", "\\|")
+            u = (url or "")[:60].replace("|", "\\|")
+            lines.append(f"| {i} | {t} | {count} |")
+        lines.append("")
+
+    if health:
+        lines += [
+            "## 🩺 Son Health Check Hesabatları",
+            "",
+        ]
+        for h in health:
+            lines.append(f"- `{h.name}` ({datetime.fromtimestamp(h.stat().st_mtime).strftime('%Y-%m-%d %H:%M')})")
+        lines.append("")
+
+    lines += [
+        "## 🔧 Tövsiyələr",
+        "",
+        f"- {'✅' if bm_urls < 500 else '⚠️'} Bookmark sayı ({bm_urls}) {'normal' if bm_urls < 500 else 'çoxdur, təmizlik tövsiyə olunur'}",
+        f"- {'✅' if ram < 6000 else '⚠️'} RAM istifadəsi ({ram:.0f}MB) {'normal' if ram < 6000 else 'tab hibernation aktivləşdir'}",
+        f"- {'✅' if notes_enc > 0 else 'ℹ️'} Şifrəli notes: {notes_enc} {'(yaxşı!)' if notes_enc > 0 else '(həssas məlumat üçün vc enc istifadə et)'}",
+        "",
+        "---",
+        f"*Hesabat: vc-weekly · {datetime.now().strftime('%Y-%m-%d')}*",
+    ]
+
+    return "\n".join(lines)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pdf", action="store_true")
+    parser.add_argument("--auto", action="store_true")
+    args = parser.parse_args()
+
+    md = render_markdown()
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    md_path = REPORT_DIR / f"weekly-{ts}.md"
+    md_path.write_text(md)
+
+    if not args.auto:
+        console.print(Markdown(md))
+        console.print(Panel(f"💾 Markdown: {md_path}", border_style="green"))
+
+    if args.pdf:
+        try:
+            from weasyprint import HTML, CSS
+            import markdown as md_mod
+            html = md_mod.markdown(md, extensions=['tables', 'fenced_code'])
+            full_html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+            <style>
+              body{{font-family:'Inter',sans-serif;background:#1e1e2e;color:#cdd6f4;padding:40px;max-width:800px;margin:auto}}
+              h1,h2,h3{{color:#cba6f7}}h1{{border-bottom:2px solid #cba6f7;padding-bottom:8px}}
+              code{{background:#313244;padding:2px 6px;border-radius:4px;color:#f5c2e7}}
+              table{{width:100%;border-collapse:collapse;margin:16px 0}}
+              th{{background:#313244;color:#cba6f7;text-align:left;padding:8px}}
+              td{{padding:8px;border-bottom:1px solid #313244}}
+              hr{{border:0;border-top:1px solid #45475a;margin:24px 0}}
+            </style></head><body>{html}</body></html>"""
+            pdf_path = REPORT_DIR / f"weekly-{ts}.pdf"
+            HTML(string=full_html).write_pdf(str(pdf_path))
+            if not args.auto:
+                console.print(Panel(f"📄 PDF: {pdf_path}", border_style="cyan"))
+        except Exception as e:
+            console.print(f"[yellow]PDF səhv: {e}[/yellow]")
+
+if __name__ == "__main__":
+    main()

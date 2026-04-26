@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  vc-focus — Pomodoro Focus Mode                                ║
+# ║  İstifadə:                                                      ║
+# ║    vc-focus 25            # 25 dəq fokus                        ║
+# ║    vc-focus 50            # 50 dəq derin fokus                  ║
+# ║    vc-focus 5 break       # 5 dəq fasilə                        ║
+# ║    vc-focus stop          # Aktiv fokusu dayandır               ║
+# ║    vc-focus stats         # Bu günkü fokus statistikası         ║
+# ╚══════════════════════════════════════════════════════════════╝
+set -euo pipefail
+
+STATE_DIR="$HOME/.cache/vc-focus"
+STATS_FILE="$HOME/.cache/vc-focus/stats.log"
+PID_FILE="$STATE_DIR/active.pid"
+mkdir -p "$STATE_DIR"
+
+DURATION="${1:-25}"
+MODE="${2:-work}"
+
+notify() {
+  notify-send -i "$3" "🍅 Focus" "$1" -t "${2:-5000}" 2>/dev/null || true
+}
+
+run_focus() {
+  local duration=$1
+  local mode=$2
+  local total_sec=$((duration * 60))
+  local end_ts=$(($(date +%s) + total_sec))
+
+  echo $$ > "$PID_FILE"
+  echo "duration=$duration mode=$mode start=$(date +%s)" > "$STATE_DIR/active.session"
+
+  if [[ "$mode" == "break" ]]; then
+    notify "☕ ${duration} dəq fasilə başladı. İstirahət et." 8000 face-cool
+  else
+    notify "🍅 ${duration} dəq fokus başladı. Fokuslan!" 8000 emblem-important
+  fi
+
+  # Halfway notification
+  sleep $((total_sec / 2))
+  if [[ ! -f "$PID_FILE" ]] || [[ $(cat "$PID_FILE") != "$$" ]]; then exit 0; fi
+  notify "${mode^} yarıya çatdı. ${duration} dəqiqənin yarısı geridə qaldı." 5000
+
+  # Last 5 minutes warning
+  local remaining=$((end_ts - $(date +%s)))
+  if [[ $remaining -gt 300 ]]; then
+    sleep $((remaining - 300))
+    [[ -f "$PID_FILE" ]] && [[ $(cat "$PID_FILE") == "$$" ]] || exit 0
+    notify "Son 5 dəqiqə..." 5000
+    sleep 300
+  else
+    sleep $remaining
+  fi
+
+  # End
+  [[ -f "$PID_FILE" ]] && [[ $(cat "$PID_FILE") == "$$" ]] || exit 0
+  if [[ "$mode" == "break" ]]; then
+    notify "✅ Fasilə bitdi! İndi yenidən fokus üçün hazırsan." 10000 emblem-default
+  else
+    notify "✅ Fokus tamamlandı! ${duration} dəqiqə oldu. ☕ Fasilə vaxtı." 10000 emblem-default
+  fi
+
+  # Log stats
+  echo "$(date +'%Y-%m-%d %H:%M') $mode $duration min completed" >> "$STATS_FILE"
+
+  rm -f "$PID_FILE" "$STATE_DIR/active.session"
+}
+
+cmd_stop() {
+  if [[ -f "$PID_FILE" ]]; then
+    local pid=$(cat "$PID_FILE")
+    kill "$pid" 2>/dev/null || true
+    rm -f "$PID_FILE" "$STATE_DIR/active.session"
+    echo "🛑 Focus dayandırıldı"
+    notify "🛑 Focus mode dayandırıldı" 3000
+  else
+    echo "→ Aktiv focus session yoxdur"
+  fi
+}
+
+cmd_status() {
+  if [[ -f "$STATE_DIR/active.session" ]]; then
+    source "$STATE_DIR/active.session"
+    local elapsed=$(($(date +%s) - start))
+    local remaining=$((duration * 60 - elapsed))
+    if [[ $remaining -gt 0 ]]; then
+      printf "🍅 %s · %d:%02d qalıb\n" "$mode" $((remaining / 60)) $((remaining % 60))
+    else
+      echo "→ Session bitdi (cleanup gözləyir)"
+    fi
+  else
+    echo "→ Aktiv focus yoxdur"
+  fi
+}
+
+cmd_stats() {
+  [[ ! -f "$STATS_FILE" ]] && { echo "→ Statistika yoxdur"; exit 0; }
+  echo "📊 Bu günkü focus statistikası:"
+  local today=$(date +%Y-%m-%d)
+  local today_count=$(grep -c "^$today" "$STATS_FILE" 2>/dev/null || echo 0)
+  local today_min=$(grep "^$today" "$STATS_FILE" 2>/dev/null | awk '{sum+=$4} END{print sum}')
+  echo "  Bu gün: ${today_count:-0} session · ${today_min:-0} dəqiqə"
+  echo ""
+  echo "📜 Son 10 session:"
+  tail -10 "$STATS_FILE" | awk '{printf "  %s %s · %s %s\n", $1, $2, $3, $4 " " $5}'
+}
+
+case "${1:-help}" in
+  stop|cancel) cmd_stop ;;
+  status|st) cmd_status ;;
+  stats|s) cmd_stats ;;
+  break) run_focus "${2:-5}" "break" & disown ;;
+  [0-9]*)
+    if [[ -f "$PID_FILE" ]]; then
+      echo "⚠️  Aktiv session var (PID $(cat "$PID_FILE"))"
+      echo "→ Əvvəl: vc-focus stop"
+      exit 1
+    fi
+    run_focus "$DURATION" "$MODE" & disown
+    echo "🍅 ${DURATION} dəq ${MODE} başladı"
+    ;;
+  help|*)
+    cat << 'EOF'
+🍅 vc-focus — Pomodoro Focus Mode
+
+İSTİFADƏ:
+  vc-focus 25            25 dəq fokus
+  vc-focus 50            50 dəq derin fokus
+  vc-focus 5 break       5 dəq fasilə
+  vc-focus break         5 dəq fasilə (default)
+  vc-focus stop          Aktiv session dayandır
+  vc-focus status        Vəziyyət
+  vc-focus stats         Statistika
+
+NÜMUNƏ İŞ AXINI (Pomodoro):
+  vc-focus 25            # işlə
+  vc-focus break         # 5 dəq fasilə
+  vc-focus 25            # tekrar
+  vc-focus 25            # tekrar
+  vc-focus 15 break      # 15 dəq uzun fasilə
+EOF
+    ;;
+esac

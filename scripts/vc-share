@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  vc-share — Vivaldi setup-ı GitHub-da açıq paylaş             ║
+# ║  Adil-in 2026 setup-ını dotfiles repo-su kimi ictimailəşdir  ║
+# ╚══════════════════════════════════════════════════════════════╝
+set -euo pipefail
+
+REPO_DIR="$HOME/vivaldi-cockpit-dotfiles"
+GH_USER="DarkTLord"
+REPO_NAME="vivaldi-cockpit"
+DESCRIPTION="🚀 Adil's legendary Vivaldi 2026 setup — Catppuccin + AZ language + 5 power tools (vc-ask, vc-cockpit, vc-find, vc-voice, vc-weekly)"
+
+cmd="${1:-help}"
+
+case "$cmd" in
+  init)
+    echo "🚀 Dotfiles repository hazırlanır..."
+    mkdir -p "$REPO_DIR"
+    cd "$REPO_DIR"
+
+    [ ! -d .git ] && git init -q -b main
+
+    # Struktur
+    mkdir -p {scripts,vivaldi/{User,dashboard},systemd,fish,bash,docs}
+
+    # Scripts
+    cp ~/.local/bin/vc{,-ask,-cockpit,-find,-voice,-weekly,-categorize,-bookmark-health.py,-note-crypt} scripts/ 2>/dev/null || true
+
+    # Vivaldi configs
+    cp ~/.config/vivaldi/User/custom.css vivaldi/User/ 2>/dev/null || true
+    cp -r ~/.vivaldi-dashboard/* vivaldi/dashboard/ 2>/dev/null || true
+
+    # systemd
+    cp ~/.config/systemd/user/vivaldi-health.* systemd/ 2>/dev/null || true
+
+    # Shell aliases
+    cp ~/.config/vc-aliases.sh bash/ 2>/dev/null || true
+    cp ~/.config/fish/conf.d/vc.fish fish/ 2>/dev/null || true
+
+    # Setup guide
+    cp ~/vivaldi-tam-bele.md docs/ 2>/dev/null || true
+    cp ~/vivaldi-legendary-setup.md docs/ 2>/dev/null || true
+    cp ~/vivaldi-extensions-install.html docs/ 2>/dev/null || true
+
+    # README
+    cat > README.md << 'README_EOF'
+# 🚀 Vivaldi Cockpit — Adil's Legendary 2026 Setup
+
+> **A complete browser power-user setup combining Vivaldi 7.9, Catppuccin Mocha,
+> Azerbaijani UI, local AI, voice control, and a custom CLI dashboard.**
+
+![Catppuccin](https://img.shields.io/badge/Theme-Catppuccin%20Mocha-cba6f7?style=flat-square)
+![Vivaldi](https://img.shields.io/badge/Vivaldi-7.9-ef3939?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-89b4fa?style=flat-square)
+
+## ✨ Highlights
+
+- **🇦🇿 Azerbaijani UI** + 6 native AZ notes + 18 proverbs in dashboard
+- **🎨 17 custom CSS mods** — Catppuccin Mocha + glassmorphism + animations
+- **🗂️ 10 emoji workspaces** — 390 organized URLs across logical domains
+- **🤖 Local AI integration** — Ollama (9 models) via `vc-ask`
+- **🎙️ Voice control** — speak commands in AZ/EN (`vc-voice`)
+- **📊 Real-time monitoring** — btop-style cockpit (`vc-cockpit`)
+- **🔍 Universal semantic search** — bookmarks + history + notes (`vc-find`)
+- **🔐 GPG-encrypted notes** — ed25519 key (`vc enc`)
+- **📅 Weekly auto-reports** — systemd timer + PDF export (`vc-weekly`)
+- **🩺 Bookmark health checker** — parallel network validation
+- **🛡️ NSA-tier privacy** — DoH, HTTPS-only, third-party cookie block
+- **⌨️ 54 keyboard shortcuts** — F-keys for workspaces, panels, dev tools
+- **🖱️ 15 mouse gestures** — including rocker gestures
+- **📡 29 RSS feeds** — Hacker News, Phoronix, Krebs, Anthropic Research
+- **🏠 Custom HTML dashboard** — clock, weather, HN top, AI prompts, projects
+
+## 🎯 The `vc` CLI
+
+Just type `v` in your terminal — interactive fzf menu opens with 26 commands.
+
+```bash
+v               # Interactive menu
+vc-ask "..."    # Local AI conversation
+vc-find ...     # Universal search
+vc-cockpit      # Real-time monitor
+vc-voice listen # Voice command (5sec)
+vc-weekly --pdf # Generate report
+```
+
+## 📦 Components
+
+| Path | Purpose |
+|------|---------|
+| `scripts/` | All `vc*` CLI tools (Python + Bash) |
+| `vivaldi/User/custom.css` | 17 Catppuccin Mocha UI mods |
+| `vivaldi/dashboard/` | Custom HTML new tab page |
+| `systemd/` | Weekly health check timer |
+| `fish/`, `bash/` | Shell aliases + welcome banner |
+| `docs/` | Full setup guide (Azerbaijani + English) |
+
+## 🚀 Installation
+
+```bash
+git clone https://github.com/DarkTLord/vivaldi-cockpit.git
+cd vivaldi-cockpit
+./install.sh
+```
+
+The installer will:
+1. Symlink `scripts/*` → `~/.local/bin/`
+2. Copy `vivaldi/User/custom.css` → `~/.config/vivaldi/User/`
+3. Set up Vivaldi dashboard at `~/.vivaldi-dashboard/`
+4. Install systemd timer for weekly health check
+5. Source aliases in your shell config
+
+## 🔧 Requirements
+
+- **OS:** Arch Linux / Garuda / BlackArch (other distros likely work)
+- **Browser:** Vivaldi 7.9+
+- **Python:** 3.11+ with `rich`, `requests`, `weasyprint`, `markdown`, `reportlab`
+- **AI:** Ollama (optional but recommended) for `vc-ask`
+- **Voice:** yappie / wiggly-stt / nerd-dictation (optional, AUR)
+- **GPG:** for encrypted notes
+
+## 📜 License
+
+MIT © Adil (DarkTLord) · 2026
+
+## 🤝 Contributing
+
+This is a personal setup but feel free to fork, adapt, and PR improvements.
+README_EOF
+
+    # install.sh
+    cat > install.sh << 'INSTALL_EOF'
+#!/usr/bin/env bash
+set -e
+echo "🚀 Vivaldi Cockpit installer"
+mkdir -p ~/.local/bin ~/.config/vivaldi/User ~/.vivaldi-dashboard ~/.config/systemd/user
+cp scripts/* ~/.local/bin/
+chmod +x ~/.local/bin/vc*
+cp vivaldi/User/custom.css ~/.config/vivaldi/User/
+cp -r vivaldi/dashboard/* ~/.vivaldi-dashboard/
+cp systemd/* ~/.config/systemd/user/
+[ -f bash/vc-aliases.sh ] && cp bash/vc-aliases.sh ~/.config/
+[ -f fish/vc.fish ] && mkdir -p ~/.config/fish/conf.d && cp fish/vc.fish ~/.config/fish/conf.d/
+echo "✓ Files copied"
+
+# Python venv
+if [ ! -d ~/.local/venvs/vc ]; then
+  python3 -m venv ~/.local/venvs/vc
+  ~/.local/venvs/vc/bin/pip install rich requests weasyprint markdown reportlab
+fi
+echo "✓ Python venv"
+
+# Enable systemd timer
+systemctl --user daemon-reload
+systemctl --user enable --now vivaldi-health.timer 2>/dev/null || true
+echo "✓ systemd timer enabled"
+
+# Add to shell
+if [ -f ~/.bashrc ] && ! grep -q vc-aliases ~/.bashrc; then
+  echo '[ -f ~/.config/vc-aliases.sh ] && source ~/.config/vc-aliases.sh' >> ~/.bashrc
+fi
+
+echo ""
+echo "✅ Installed! Open a new terminal and type 'v' to begin."
+echo "📖 Read docs/vivaldi-tam-bele.md for full guide."
+INSTALL_EOF
+    chmod +x install.sh
+
+    # .gitignore
+    cat > .gitignore << 'GIT_EOF'
+*.pyc
+__pycache__/
+*.bak
+*.log
+.cache/
+GIT_EOF
+
+    # LICENSE
+    cat > LICENSE << 'LIC_EOF'
+MIT License
+
+Copyright (c) 2026 Adil (DarkTLord)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+LIC_EOF
+
+    # Strip secrets from copied configs (extra safety)
+    grep -rl "academytural\|reg_b911\|ANTHROPIC_API_KEY\|github_pat" "$REPO_DIR" 2>/dev/null | while read f; do
+      sed -i 's/academytural@gmail\.com/your-email@example.com/g; s/reg_b911[a-f0-9]*/REDACTED_TOKEN/g' "$f" 2>/dev/null || true
+    done
+
+    echo "✓ Repository struktur hazırdır: $REPO_DIR"
+    echo ""
+    ls -la "$REPO_DIR"
+    ;;
+
+  push)
+    [ ! -d "$REPO_DIR/.git" ] && { echo "❌ Əvvəlcə: vc-share init"; exit 1; }
+    cd "$REPO_DIR"
+    git add -A
+    git -c user.name='Adil' -c user.email='academytural@gmail.com' commit -m "Initial commit: Vivaldi Cockpit 2026 setup" || true
+
+    # Repo varsa skip yaratmağı
+    if ! gh repo view "$GH_USER/$REPO_NAME" >/dev/null 2>&1; then
+      gh repo create "$GH_USER/$REPO_NAME" --public --source=. --description "$DESCRIPTION" --push
+      echo "✓ Repo yaradıldı və push olundu"
+    else
+      git remote get-url origin >/dev/null 2>&1 || git remote add origin "https://github.com/$GH_USER/$REPO_NAME.git"
+      git branch -M main
+      git push -u origin main
+      echo "✓ Push olundu"
+    fi
+    echo ""
+    echo "🌐 https://github.com/$GH_USER/$REPO_NAME"
+    ;;
+
+  open)
+    xdg-open "https://github.com/$GH_USER/$REPO_NAME" 2>/dev/null || \
+      vivaldi "https://github.com/$GH_USER/$REPO_NAME" &>/dev/null & disown
+    ;;
+
+  status)
+    if [ -d "$REPO_DIR/.git" ]; then
+      cd "$REPO_DIR"
+      echo "📂 Yerli: $REPO_DIR"
+      echo ""
+      git status -s
+      echo ""
+      git log --oneline -5 2>/dev/null
+    else
+      echo "❌ Repo hələ initialize olunmayıb"
+      echo "→ vc-share init"
+    fi
+    ;;
+
+  help|*)
+    cat << 'EOF'
+🌐 vc-share — Setup-ı GitHub-da paylaş
+
+ƏMRLƏR:
+  init      Repo struktur yarat (~/vivaldi-cockpit-dotfiles)
+  push      GitHub-a push et (gh CLI ilə avtomatik)
+  open      GitHub-da açır
+  status    Yerli repo vəziyyəti
+
+İŞ AXINI:
+  vc-share init    # 1. Yerli repo yarat
+  vc-share push    # 2. GitHub-a göndər
+  vc-share open    # 3. Browser-də gör
+EOF
+    ;;
+esac

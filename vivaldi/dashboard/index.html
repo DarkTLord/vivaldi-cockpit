@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adil's Cockpit</title>
+<style>
+:root{--base:#1e1e2e;--mantle:#181825;--crust:#11111b;--surface0:#313244;--surface1:#45475a;--surface2:#585b70;--text:#cdd6f4;--subtext:#a6adc8;--overlay:#6c7086;--pink:#f5c2e7;--mauve:#cba6f7;--red:#f38ba8;--peach:#fab387;--yellow:#f9e2af;--green:#a6e3a1;--teal:#94e2d5;--sky:#89dceb;--sapphire:#74c7ec;--blue:#89b4fa;--lavender:#b4befe}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter','SF Pro Display',system-ui,sans-serif}
+body{background:var(--base);color:var(--text);min-height:100vh;overflow-x:hidden;background-image:radial-gradient(at 20% 0%,rgba(203,166,247,.15) 0,transparent 50%),radial-gradient(at 80% 100%,rgba(137,180,250,.15) 0,transparent 50%),radial-gradient(at 50% 50%,rgba(245,194,231,.06) 0,transparent 50%)}
+.container{max-width:1400px;margin:0 auto;padding:32px}
+.hero{display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--surface0)}
+.greeting h1{font-size:56px;font-weight:800;letter-spacing:-.04em;line-height:1;background:linear-gradient(135deg,var(--mauve),var(--blue),var(--lavender));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.greeting p{color:var(--subtext);font-size:16px}
+.clock{text-align:right;font-variant-numeric:tabular-nums}
+.clock .time{font-size:64px;font-weight:700;color:var(--text);letter-spacing:-.03em;line-height:1}
+.clock .date{color:var(--subtext);margin-top:6px;font-size:14px}
+.clock .weather{margin-top:8px;color:var(--peach);font-size:13px}
+.search-bar{margin:24px 0;display:flex;gap:12px;background:var(--surface0);padding:8px;border-radius:16px;border:1px solid var(--surface1);transition:border .2s,box-shadow .2s}
+.search-bar:focus-within{border-color:var(--mauve);box-shadow:0 0 0 4px rgba(203,166,247,.15)}
+.search-bar select{background:var(--mantle);color:var(--mauve);border:none;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;outline:none}
+.search-bar input{flex:1;background:transparent;border:none;color:var(--text);font-size:16px;padding:10px 8px;outline:none}
+.search-bar input::placeholder{color:var(--overlay)}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:24px}
+.section{background:var(--mantle);border:1px solid var(--surface0);border-radius:16px;padding:24px}
+.section h2{font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--subtext);margin-bottom:16px;font-weight:700}
+.workspaces{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.ws-card{background:var(--surface0);border:1px solid var(--surface1);border-radius:12px;padding:16px 12px;text-align:center;cursor:pointer;text-decoration:none;color:var(--text);transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:6px}
+.ws-card:hover{background:var(--surface1);border-color:var(--mauve);transform:translateY(-2px);box-shadow:0 8px 16px rgba(0,0,0,.2)}
+.ws-card .emoji{font-size:28px}
+.ws-card .name{font-size:11px;color:var(--subtext);font-weight:600}
+.ai-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ai-btn{background:linear-gradient(135deg,var(--surface0),var(--mantle));border:1px solid var(--surface1);border-radius:10px;padding:14px 8px;text-align:center;text-decoration:none;color:var(--text);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;display:block}
+.ai-btn:hover{transform:translateY(-2px);border-color:var(--blue)}
+.ai-btn .icon{font-size:22px;display:block;margin-bottom:4px}
+.widget{margin-bottom:16px}
+.proverb{background:linear-gradient(135deg,rgba(203,166,247,.1),rgba(137,180,250,.05));border:1px solid rgba(203,166,247,.2);padding:20px;border-radius:12px;font-style:italic;color:var(--text);font-size:14px;line-height:1.6}
+.prompt-card{background:var(--crust);padding:16px;border-radius:10px;border:1px solid var(--surface0);margin-bottom:12px}
+.prompt-card .label{font-size:11px;color:var(--mauve);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:6px}
+.prompt-card .text{color:var(--text);font-size:13px;line-height:1.5}
+.prompt-card button{background:var(--surface0);color:var(--text);border:none;padding:6px 10px;border-radius:6px;font-size:11px;margin:8px 4px 0 0;cursor:pointer;transition:background .2s}
+.prompt-card button:hover{background:var(--mauve);color:var(--base)}
+.hn-list{list-style:none}
+.hn-item{padding:12px 0;border-bottom:1px solid var(--surface0)}
+.hn-item:last-child{border-bottom:none}
+.hn-item a{color:var(--text);text-decoration:none;font-size:13px;line-height:1.4;display:block}
+.hn-item a:hover{color:var(--peach)}
+.hn-item .meta{color:var(--overlay);font-size:11px;margin-top:4px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+.stat{background:var(--mantle);border:1px solid var(--surface0);border-radius:12px;padding:18px;text-align:center}
+.stat .value{font-size:28px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
+.stat .label{font-size:11px;color:var(--subtext);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.stat:nth-child(2) .value{color:var(--blue)}
+.stat:nth-child(3) .value{color:var(--mauve)}
+.stat:nth-child(4) .value{color:var(--peach)}
+.footer{margin-top:40px;text-align:center;color:var(--overlay);font-size:11px;padding:16px}
+.footer a{color:var(--mauve);text-decoration:none}
+@media(max-width:1024px){.grid{grid-template-columns:1fr}.workspaces{grid-template-columns:repeat(5,1fr)}.ai-grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="hero">
+<div class="greeting"><h1 id="greeting">Salam Adil</h1><p id="subgreeting">Bu gün nə yaratacağıq?</p></div>
+<div class="clock"><div class="time" id="time">--:--</div><div class="date" id="date">—</div><div class="weather" id="weather">Hava yüklənir...</div></div>
+</div>
+<div class="search-bar">
+<select id="engine">
+<option value="https://www.google.com/search?q=">Google</option>
+<option value="https://duckduckgo.com/?q=">DuckDuckGo</option>
+<option value="https://www.perplexity.ai/?q=">Perplexity</option>
+<option value="https://github.com/search?q=">GitHub</option>
+<option value="https://context7.com/search?q=">Context7</option>
+<option value="https://www.npmjs.com/search?q=">npm</option>
+<option value="https://pub.dev/packages?q=">pub.dev</option>
+<option value="https://stackoverflow.com/search?q=">StackOverflow</option>
+<option value="https://wiki.archlinux.org/index.php?search=">Arch Wiki</option>
+<option value="https://www.youtube.com/results?search_query=">YouTube</option>
+</select>
+<input id="searchInput" placeholder="Axtar... (Ctrl+K)" autofocus>
+</div>
+<div class="section" style="margin-bottom:24px"><h2>🗂️ Workspaces — Sürətli Açılış</h2>
+<div class="workspaces" id="ws-grid"></div>
+</div>
+<div class="grid">
+<div>
+<div class="section" style="margin-bottom:24px"><h2>🤖 AI Modellər — Bir Klikdə</h2>
+<div class="ai-grid" id="ai-grid"></div>
+</div>
+<div class="section"><h2>📰 Hacker News — Bu Gün</h2>
+<ul class="hn-list" id="hn-list"><li class="hn-item"><a>Yüklənir...</a></li></ul>
+</div>
+</div>
+<div>
+<div class="widget"><div class="section"><h2>📜 Günün AZ Atalar Sözü</h2>
+<div class="proverb" id="proverb">Yüklənir...</div></div></div>
+<div class="widget"><div class="section"><h2>🎯 AI Prompt Günün</h2>
+<div class="prompt-card">
+<div class="label" id="prompt-label">Code Review</div>
+<div class="text" id="prompt-text">...</div>
+<button id="btn-copy">📋 Kopyala</button>
+<button id="btn-next">↻ Sonrakı</button>
+</div></div></div>
+<div class="widget"><div class="section"><h2>🚀 GitHub Pulse</h2>
+<div id="ghpulse" style="font-size:13px;color:var(--subtext)">Yüklənir...</div>
+</div></div>
+</div>
+</div>
+<div class="stats">
+<div class="stat"><div class="value">390</div><div class="label">Bookmark</div></div>
+<div class="stat"><div class="value">10</div><div class="label">Workspace</div></div>
+<div class="stat"><div class="value">42</div><div class="label">Shortcut</div></div>
+<div class="stat"><div class="value">15</div><div class="label">Extension</div></div>
+</div>
+<div class="footer">Vivaldi 7.9 + Catppuccin Mocha · Setup by Adil · 2026<br><a href="file:///home/blackarch/vivaldi-tam-bele.md">📖 Tam Setup Bələdçisi</a></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+
+// ═══ CLOCK ═══
+const days = ['Bazar','Bazar ertəsi','Çərşənbə axşamı','Çərşənbə','Cümə axşamı','Cümə','Şənbə'];
+const months = ['Yanvar','Fevral','Mart','Aprel','May','İyun','İyul','Avqust','Sentyabr','Oktyabr','Noyabr','Dekabr'];
+function tick(){
+  const d = new Date();
+  $('time').textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  $('date').textContent = days[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()];
+}
+tick(); setInterval(tick, 30000);
+
+// ═══ GREETING ═══
+const h = new Date().getHours();
+let g='Salam Adil', sg='Bu gün nə yaratacağıq?';
+if(h<6){g='Gecə yarısı, Adil';sg='Hələ də işləyirik?';}
+else if(h<12){g='Sabahın xeyir, Adil';sg='Bu gün nə yaratacağıq?';}
+else if(h<17){g='Salam Adil';sg='Günortan xeyirli olsun';}
+else if(h<22){g='Axşamın xeyir, Adil';sg='Necə getdi günün?';}
+else{g='Gecən xeyir, Adil';sg='İstirahət vaxtı yaxınlaşır';}
+$('greeting').textContent = g;
+$('subgreeting').textContent = sg;
+
+// ═══ HAVA (open-meteo — clean JSON, no HTML pollution) ═══
+const wmoMap = {
+  0:'☀️ Aydın',1:'🌤️ Az buludlu',2:'⛅ Buludlu',3:'☁️ Tutqun',
+  45:'🌫️ Duman',48:'🌫️ Duman',
+  51:'🌦️ Çisəkli',53:'🌦️ Çisəkli',55:'🌦️ Şiddətli çisək',
+  61:'🌧️ Yüngül yağış',63:'🌧️ Yağış',65:'🌧️ Şiddətli yağış',
+  71:'🌨️ Yüngül qar',73:'🌨️ Qar',75:'❄️ Şiddətli qar',
+  77:'🌨️ Qar dənələri',
+  80:'🌦️ Leysan',81:'🌧️ Leysan',82:'⛈️ Şiddətli leysan',
+  85:'🌨️ Qar leysanı',86:'❄️ Şiddətli qar leysanı',
+  95:'⛈️ Tufan',96:'⛈️ Tufan + dolu',99:'⛈️ Şiddətli tufan'
+};
+fetch('https://api.open-meteo.com/v1/forecast?latitude=40.4093&longitude=49.8671&current=temperature_2m,wind_speed_10m,weather_code&timezone=Asia/Baku')
+  .then(r=>r.json())
+  .then(d=>{
+    const c = d.current;
+    const desc = wmoMap[c.weather_code] || '🌍';
+    $('weather').textContent = `🌍 Bakı: ${desc} ${Math.round(c.temperature_2m)}°C · 💨 ${Math.round(c.wind_speed_10m)} km/h`;
+  })
+  .catch(()=>$('weather').textContent='🌍 Hava məlumatı yüklənmədi');
+
+// ═══ SEARCH ═══
+const si = $('searchInput');
+si.addEventListener('keydown', e => {
+  if(e.key==='Enter') location.href = $('engine').value + encodeURIComponent(si.value);
+});
+document.addEventListener('keydown', e => {
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();si.focus();}
+});
+
+// ═══ WORKSPACES ═══
+const ws = [
+  {emoji:'💻',name:'Dev',url:'http://localhost:3000'},
+  {emoji:'🤖',name:'AI Lab',url:'https://claude.ai'},
+  {emoji:'🛡️',name:'Security',url:'https://www.shodan.io'},
+  {emoji:'📚',name:'Research',url:'https://arxiv.org'},
+  {emoji:'🎨',name:'Design',url:'https://www.figma.com'},
+  {emoji:'📰',name:'Pulse',url:'https://news.ycombinator.com'},
+  {emoji:'🧠',name:'Brain',url:'https://www.notion.so'},
+  {emoji:'💬',name:'Social',url:'https://x.com/home'},
+  {emoji:'🎬',name:'Lounge',url:'https://www.youtube.com'},
+  {emoji:'💰',name:'Life',url:'https://maps.google.com'}
+];
+const wsGrid = $('ws-grid');
+ws.forEach(w => {
+  const a = document.createElement('a');
+  a.className = 'ws-card';
+  a.href = w.url;
+  const e = document.createElement('span'); e.className='emoji'; e.textContent=w.emoji;
+  const n = document.createElement('span'); n.className='name'; n.textContent=w.name;
+  a.appendChild(e); a.appendChild(n);
+  wsGrid.appendChild(a);
+});
+
+// ═══ AI BUTTONS ═══
+const ai = [
+  {icon:'🎭',name:'Claude',url:'https://claude.ai'},
+  {icon:'💬',name:'ChatGPT',url:'https://chat.openai.com'},
+  {icon:'🔍',name:'Perplexity',url:'https://www.perplexity.ai'},
+  {icon:'✨',name:'Gemini',url:'https://gemini.google.com'},
+  {icon:'🐋',name:'DeepSeek',url:'https://chat.deepseek.com'}
+];
+const aiGrid = $('ai-grid');
+ai.forEach(a => {
+  const btn = document.createElement('a');
+  btn.className = 'ai-btn';
+  btn.href = a.url;
+  btn.target = '_blank';
+  const ic = document.createElement('span'); ic.className='icon'; ic.textContent=a.icon;
+  btn.appendChild(ic);
+  btn.appendChild(document.createTextNode(a.name));
+  aiGrid.appendChild(btn);
+});
+
+// ═══ HACKER NEWS (safe DOM) ═══
+fetch('https://hacker-news.firebaseio.com/v0/topstories.json')
+  .then(r=>r.json())
+  .then(ids=>Promise.all(ids.slice(0,5).map(id=>
+    fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(r=>r.json())
+  )))
+  .then(stories => {
+    const list = $('hn-list');
+    list.textContent = '';
+    stories.forEach(s => {
+      const li = document.createElement('li');
+      li.className = 'hn-item';
+      const a = document.createElement('a');
+      a.href = s.url || ('https://news.ycombinator.com/item?id=' + s.id);
+      a.target = '_blank';
+      a.textContent = s.title;
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = `▲ ${s.score} · ${s.descendants||0} comments · ${s.by}`;
+      a.appendChild(meta);
+      li.appendChild(a);
+      list.appendChild(li);
+    });
+  })
+  .catch(() => {
+    const list = $('hn-list');
+    list.textContent = '';
+    const li = document.createElement('li');
+    li.className = 'hn-item';
+    const a = document.createElement('a');
+    a.href = 'https://news.ycombinator.com';
+    a.textContent = 'HN açmaq üçün bura kliklə';
+    li.appendChild(a);
+    list.appendChild(li);
+  });
+
+// ═══ AZ PROVERBS ═══
+const proverbs = [
+  "Vaxt qızıldan qiymətlidir.",
+  "Bir baxışın min söhbəti var.",
+  "Tək əldən səs çıxmaz.",
+  "Su axar, çuxurunu tapar.",
+  "Gözəl olan dünya zəhmətə dəyər.",
+  "İti gör daşı yığ.",
+  "Yüz dəfə eşitməkdənsə, bir dəfə görmək yaxşıdır.",
+  "Bilik insanın əbədi zənginliyidir.",
+  "Hər işin öz vaxtı var.",
+  "Doğru söz acı olar.",
+  "İlk addım ən çətinidir.",
+  "Səbr — uğurun açarıdır.",
+  "Tələsən təngnəfəs olar.",
+  "Düşmən gücdə deyil, ağılda olar.",
+  "Az danış, çox dinlə.",
+  "Yaxşı dost gümüşdən qiymətlidir.",
+  "Acı həqiqət şirin yalandan yaxşıdır.",
+  "Ağıl yaşda deyil, başdadır."
+];
+const dayIdx = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0))/86400000) % proverbs.length;
+$('proverb').textContent = '« ' + proverbs[dayIdx] + ' »';
+
+// ═══ AI PROMPTS ═══
+const prompts = [
+  {label:"Code Review (Sərt)",text:"Review this code mercilessly. Find every bug, security flaw, performance issue, edge case. Be specific. No fluff."},
+  {label:"Architecture Decision",text:"I'm building [feature]. Compare 3 approaches: [A], [B], [C]. For each: pros, cons, scaling, complexity. Pick one with reason."},
+  {label:"Debug Mystery",text:"Debug this. Symptom: [X]. Expected: [Y]. Already tried: [Z]. Don't repeat what I tried. Find root cause."},
+  {label:"Refactor",text:"Refactor for clarity, idiomaticity, testability. Don't add features. Preserve all behavior. Show diff."},
+  {label:"Translate to AZ",text:"Translate to Azerbaijani. Keep technical terms in English where natural. Tone: friendly, direct."},
+  {label:"Explain Like I'm 5",text:"Explain [concept] like I'm 5. Use analogies from everyday life. No jargon."},
+  {label:"Find Edge Cases",text:"List 10 edge cases for [feature/function]. Include rare ones — race conditions, unicode, network failures, malicious input."},
+  {label:"Optimize Performance",text:"Profile this code's bottleneck. Suggest 3 strategies. Include Big-O analysis. Real benchmarks if possible."},
+  {label:"Security Audit",text:"Audit for OWASP Top 10. SQL injection, XSS, CSRF, broken auth, sensitive data. Be paranoid."},
+  {label:"Write Tests",text:"Write unit tests covering happy path + edge cases + failure modes. 80%+ coverage. Use AAA pattern."}
+];
+let cur = Math.floor(Math.random()*prompts.length);
+function show(){$('prompt-label').textContent=prompts[cur].label;$('prompt-text').textContent=prompts[cur].text;}
+$('btn-next').addEventListener('click', () => { cur=(cur+1)%prompts.length; show(); });
+$('btn-copy').addEventListener('click', () => {
+  navigator.clipboard.writeText(prompts[cur].text);
+  const b=$('btn-copy');const o=b.textContent;b.textContent='✓ Kopyalandı';setTimeout(()=>b.textContent=o,1500);
+});
+show();
+
+// ═══ GitHub Project Pulse ═══
+async function ghPulse(){
+  try{
+    const r = await fetch('https://api.github.com/users/DarkTLord/repos?sort=pushed&per_page=4');
+    const repos = await r.json();
+    const c = document.getElementById('ghpulse'); if(!c) return;
+    c.textContent = '';
+    if(!Array.isArray(repos)){c.textContent='GitHub API rate limit'; return;}
+    for(const repo of repos){
+      const card = document.createElement('a');
+      card.className = 'ai-btn';
+      card.href = repo.html_url; card.target = '_blank';
+      card.style.cssText = 'text-align:left;padding:12px;margin-bottom:6px;display:block';
+      const name = document.createElement('div');
+      name.style.color = 'var(--mauve)';
+      name.style.fontSize = '14px';
+      name.style.fontWeight = '700';
+      name.textContent = '🔵 ' + repo.name;
+      card.appendChild(name);
+      const meta = document.createElement('div');
+      meta.style.fontSize = '11px';
+      meta.style.color = 'var(--subtext)';
+      meta.style.marginTop = '4px';
+      const lang = repo.language || '?';
+      const stars = repo.stargazers_count || 0;
+      const updated = new Date(repo.pushed_at).toLocaleDateString('az');
+      meta.textContent = `${lang} · ⭐ ${stars} · ${updated}`;
+      card.appendChild(meta);
+      if(repo.description){
+        const desc = document.createElement('div');
+        desc.style.fontSize = '12px';
+        desc.style.color = 'var(--text)';
+        desc.style.marginTop = '4px';
+        desc.textContent = repo.description.slice(0,80);
+        card.appendChild(desc);
+      }
+      c.appendChild(card);
+    }
+  }catch(e){
+    const c = document.getElementById('ghpulse');
+    if(c) c.textContent = 'GitHub yüklənmədi';
+  }
+}
+ghPulse();
+
+</script>
+</body>
+</html>

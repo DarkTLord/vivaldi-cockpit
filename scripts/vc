@@ -1,0 +1,318 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  vc — Vivaldi CLI (interaktiv) · Adil 2026                   ║
+# ║  İstifadə: 'vc' yaz, ox düymələri + Enter ilə seç            ║
+# ╚══════════════════════════════════════════════════════════════╝
+set -euo pipefail
+
+# ── Configuration ─────────────────────────────────────────────────
+DASHBOARD="file:///home/blackarch/.vivaldi-dashboard/index.html"
+BOOKMARKS="$HOME/.config/vivaldi/Default/Bookmarks"
+PREFS="$HOME/.config/vivaldi/Default/Preferences"
+NOTES="$HOME/.config/vivaldi/Default/Notes"
+WEBDATA="$HOME/.config/vivaldi/Default/Web Data"
+
+# Catppuccin Mocha colors for fzf
+FZF_OPTS=(
+  --height=80%
+  --layout=reverse
+  --border=rounded
+  --margin=2
+  --padding=1
+  --prompt='❯ '
+  --pointer='▶'
+  --marker='✓'
+  --color='bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8'
+  --color='fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc'
+  --color='marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8'
+  --color='border:#cba6f7'
+)
+
+# ── Helper functions ──────────────────────────────────────────────
+v_open() { vivaldi "$@" &>/dev/null & disown; }
+
+f_dash()      { v_open "$DASHBOARD"; echo "🏠 Dashboard açıldı"; }
+f_status()    {
+  local procs=$(ps -ef | grep "[/]opt/vivaldi/vivaldi-bin" | wc -l)
+  if [[ $procs -eq 0 ]]; then echo "❌ Vivaldi qapalıdır"; return; fi
+  local ram=$(ps -eo rss,comm | grep vivaldi | awk '{s+=$1} END {printf "%.1f MB", s/1024}')
+  local disk=$(du -sh "$HOME/.config/vivaldi" 2>/dev/null | awk '{print $1}')
+  local bm=$(jq '[.. | objects | select(.type=="url")] | length' "$BOOKMARKS" 2>/dev/null)
+  echo "📊 Vivaldi Status"
+  echo "  • Proseslər: $procs"
+  echo "  • RAM:       $ram"
+  echo "  • Disk:      $disk"
+  echo "  • Bookmark:  $bm URL"
+}
+f_kill() {
+  pkill -SIGTERM -f "vivaldi-bin" 2>/dev/null || true
+  sleep 2
+  pkill -SIGKILL -f "vivaldi-bin" 2>/dev/null || true
+  echo "🛑 Vivaldi dayandırıldı"
+}
+f_start()     { setsid vivaldi --lang=az "$DASHBOARD" &>/dev/null & disown; echo "🚀 Vivaldi başladıldı"; }
+f_restart()   { f_kill; sleep 2; f_start; }
+f_ai()        { vivaldi --new-window "https://claude.ai" "https://chat.openai.com" "https://www.perplexity.ai" &>/dev/null & disown; echo "🤖 AI Triple açıldı"; }
+f_aiquintet() { vivaldi --new-window "https://claude.ai" "https://chat.openai.com" "https://www.perplexity.ai" "https://gemini.google.com" "https://chat.deepseek.com" &>/dev/null & disown; echo "🤖 5 AI birdən açıldı"; }
+f_localhost() { vivaldi --new-window "http://localhost:3000" "http://localhost:8000" "http://localhost:5173" &>/dev/null & disown; echo "🖥️  Localhost Triple"; }
+
+f_workspace() {
+  local choice=$(printf '💻 Dev — localhost:3000\n🤖 AI Lab — Claude\n🛡️ Security — Shodan\n📚 Research — arxiv\n🎨 Design — Figma\n📰 Pulse — Hacker News\n🧠 Brain — Notion\n💬 Social — X/Twitter\n🎬 Lounge — YouTube\n💰 Life — Maps\n📡 RSS — Hacker News RSS' | \
+    fzf "${FZF_OPTS[@]}" --header="🗂️  Workspace seç (Esc — geri)" --prompt="Workspace ❯ ")
+  case "$choice" in
+    *"Dev"*)        v_open "http://localhost:3000" ;;
+    *"AI Lab"*)     v_open "https://claude.ai" ;;
+    *"Security"*)   v_open "https://www.shodan.io" ;;
+    *"Research"*)   v_open "https://arxiv.org" ;;
+    *"Design"*)     v_open "https://www.figma.com" ;;
+    *"Pulse"*)      v_open "https://news.ycombinator.com" ;;
+    *"Brain"*)      v_open "https://www.notion.so" ;;
+    *"Social"*)     v_open "https://x.com/home" ;;
+    *"Lounge"*)     v_open "https://www.youtube.com" ;;
+    *"Life"*)       v_open "https://maps.google.com" ;;
+    *"RSS"*)        v_open "https://news.ycombinator.com/rss" ;;
+  esac
+  [[ -n "$choice" ]] && echo "✓ Açıldı: $choice"
+}
+
+f_search() {
+  local engine=$(printf '🔵 Google\n🦆 DuckDuckGo\n🔍 Perplexity\n📦 GitHub Repo\n💾 GitHub Code\n📚 Context7\n📦 npm\n🎯 pub.dev (Flutter)\n🐍 PyPI\n🦀 crates.io\n📖 MDN Web\n💬 StackOverflow\n📚 Wikipedia EN\n🐧 Arch Wiki\n📦 AUR\n🛡️ CVE Database\n🤗 HuggingFace\n📺 YouTube\n🔤 regex101' | \
+    fzf "${FZF_OPTS[@]}" --header="🔎 Engine seç" --prompt="Engine ❯ ")
+  [[ -z "$engine" ]] && return
+  echo -n "🔎 Sorğu daxil et: "
+  read -r query
+  [[ -z "$query" ]] && return
+  case "$engine" in
+    *Google*)        url="https://www.google.com/search?q=" ;;
+    *DuckDuckGo*)    url="https://duckduckgo.com/?q=" ;;
+    *Perplexity*)    url="https://www.perplexity.ai/?q=" ;;
+    *"GitHub Repo"*) url="https://github.com/search?type=repositories&q=" ;;
+    *"GitHub Code"*) url="https://github.com/search?type=code&q=" ;;
+    *Context7*)      url="https://context7.com/search?q=" ;;
+    *npm*)           url="https://www.npmjs.com/search?q=" ;;
+    *pub.dev*)       url="https://pub.dev/packages?q=" ;;
+    *PyPI*)          url="https://pypi.org/search/?q=" ;;
+    *crates.io*)     url="https://crates.io/search?q=" ;;
+    *MDN*)           url="https://developer.mozilla.org/en-US/search?q=" ;;
+    *StackOverflow*) url="https://stackoverflow.com/search?q=" ;;
+    *Wikipedia*)     url="https://en.wikipedia.org/wiki/Special:Search?search=" ;;
+    *"Arch Wiki"*)   url="https://wiki.archlinux.org/index.php?search=" ;;
+    *AUR*)           url="https://aur.archlinux.org/packages?K=" ;;
+    *CVE*)           url="https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=" ;;
+    *HuggingFace*)   url="https://huggingface.co/models?search=" ;;
+    *YouTube*)       url="https://www.youtube.com/results?search_query=" ;;
+    *regex101*)      url="https://regex101.com/?regex=" ;;
+  esac
+  encoded=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$query")
+  v_open "${url}${encoded}"
+  echo "🔍 $engine: $query"
+}
+
+f_bm_find() {
+  echo -n "🔎 Bookmark axtarış sözü: "
+  read -r query
+  [[ -z "$query" ]] && return
+  jq -r --arg q "$query" '
+    [.. | objects | select(.type=="url") |
+     select((.name + " " + .url) | ascii_downcase | contains($q | ascii_downcase))]
+    | .[] | "\(.name)\t\(.url)"
+  ' "$BOOKMARKS" | fzf "${FZF_OPTS[@]}" \
+      --header="📑 \"$query\" üçün nəticə (Enter — aç)" \
+      --delimiter='\t' --with-nth=1 --preview='echo {2}' --preview-window=down:3:wrap | \
+    awk -F'\t' '{print $2}' | xargs -r -I{} bash -c "vivaldi '{}' &>/dev/null & disown"
+}
+
+f_bm_count() {
+  local urls=$(jq '[.. | objects | select(.type=="url")] | length' "$BOOKMARKS")
+  local folders=$(jq '[.. | objects | select(.type=="folder")] | length' "$BOOKMARKS")
+  echo "📊 Bookmark statistikası:"
+  echo "  • $urls URL"
+  echo "  • $folders folder"
+}
+
+f_notes() {
+  local subjects=$(jq -r '.children[] | select(.type=="note") | .subject' "$NOTES" 2>/dev/null | grep -v '^$' || true)
+  [[ -z "$subjects" ]] && { echo "Note yoxdur"; return; }
+  local choice=$(echo "$subjects" | fzf "${FZF_OPTS[@]}" --header="📝 Note seç (Enter — oxu)")
+  [[ -z "$choice" ]] && return
+  jq -r --arg s "$choice" '.children[] | select(.subject==$s) | .content' "$NOTES" | less -R
+}
+
+f_backup() {
+  local dir="$HOME/.config/vivaldi-backup-$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$dir"
+  cp "$BOOKMARKS" "$dir/" 2>/dev/null || true
+  cp "$PREFS" "$dir/" 2>/dev/null || true
+  cp "$WEBDATA" "$dir/" 2>/dev/null || true
+  cp "$NOTES" "$dir/" 2>/dev/null || true
+  cp "$HOME/.config/vivaldi/Local State" "$dir/" 2>/dev/null || true
+  echo "💾 Backup: $dir"
+  ls -la "$dir"
+}
+
+f_health() {
+  python3 "$HOME/.local/bin/vc-bookmark-health.py"
+}
+
+f_ext() {
+  v_open "file:///home/blackarch/vivaldi-extensions-install.html"
+  echo "🔌 Extension installer açıldı"
+}
+
+f_guide() {
+  if command -v bat &>/dev/null; then
+    bat "$HOME/vivaldi-tam-bele.md"
+  elif command -v glow &>/dev/null; then
+    glow "$HOME/vivaldi-tam-bele.md"
+  else
+    less "$HOME/vivaldi-tam-bele.md"
+  fi
+}
+
+f_chained() {
+  local choice=$(printf '🤖 AI Triple (Claude+GPT+Perplexity)\n🤖 AI Quintet (5 model)\n🖥️ Localhost Triple\n📚 Docs Quad (MDN+Flutter+FastAPI+C7)\n🛡️ Security (Shodan+CVE+HackTricks)\n📡 GitHub (Trending+Issues+PRs+Notif)\n🎨 Design (Figma+Dribbble+Awwwards)' | \
+    fzf "${FZF_OPTS[@]}" --header="🔗 Chained command")
+  case "$choice" in
+    *"AI Triple"*)   f_ai ;;
+    *"AI Quintet"*)  f_aiquintet ;;
+    *"Localhost"*)   f_localhost ;;
+    *"Docs Quad"*)   vivaldi --new-window "https://developer.mozilla.org" "https://docs.flutter.dev" "https://fastapi.tiangolo.com" "https://context7.com" &>/dev/null & disown; echo "📚 Docs Quad" ;;
+    *"Security"*)    vivaldi --new-window "https://www.shodan.io" "https://cve.mitre.org" "https://book.hacktricks.xyz" &>/dev/null & disown; echo "🛡️ Security Triple" ;;
+    *"GitHub"*)      vivaldi --new-window "https://github.com/trending" "https://github.com/issues" "https://github.com/pulls" "https://github.com/notifications" &>/dev/null & disown; echo "📡 GitHub Quad" ;;
+    *"Design"*)      vivaldi --new-window "https://www.figma.com" "https://dribbble.com" "https://www.awwwards.com" &>/dev/null & disown; echo "🎨 Design Triple" ;;
+  esac
+}
+
+# ── Main interactive menu ────────────────────────────────────────
+f_menu() {
+  local choice=$(cat <<EOF | fzf "${FZF_OPTS[@]}" --header="🚀 Vivaldi CLI — Adil's Cockpit (Esc — çıxış)" --prompt="Menyu ❯ "
+🏠 dash         · Dashboard aç (yeni tab)
+🤖 ai           · AI Triple (Claude + GPT + Perplexity)
+🌟 aiquintet    · 5 AI birdən (+ Gemini + DeepSeek)
+🖥️  localhost    · :3000 + :8000 + :5173 birdən
+🗂️  ws           · Workspace seç (10 mövcud)
+🔎 search       · Sürətli axtarış (19 engine)
+🔗 chained      · Chained command (7 hazır)
+─────────────────────────────────────
+📑 bm find      · Bookmark-larda axtar (390 URL)
+📊 bm count     · Bookmark statistika
+📝 notes        · 6 AZ note oxu
+📖 guide        · Tam setup guide
+🔌 ext          · Extension installer aç
+─────────────────────────────────────
+🔐 enc          · Note şifrələ (GPG)
+🔓 dec          · Şifrəli note-u oxu
+🔒 enc-backup   · Bütün notes-ları şifrəli backup
+─────────────────────────────────────
+🤖 ask          · Local AI ilə danış (Ollama)
+🔍 find         · Universal axtarış (BM+History+Notes)
+📊 cockpit      · Real-time monitor (btop stili)
+🎙️  voice        · Səslə Vivaldi idarəsi
+─────────────────────────────────────
+📈 status       · Vivaldi vəziyyəti (RAM/disk)
+💾 backup       · Konfiq backup et
+🩺 health       · Bookmark health check
+⏰ timer        · Auto-health timer status
+📊 weekly       · Həftəlik raport (Markdown+PDF)
+🤖 categorize   · AI bookmark kateqoriya
+🌐 share        · GitHub-da paylaş
+🚀 start        · Vivaldi başlat
+🛑 kill         · Vivaldi dayandır
+🔄 restart      · Yenidən başlat
+EOF
+)
+  case "$choice" in
+    *dash*)       f_dash ;;
+    *aiquintet*)  f_aiquintet ;;
+    *ai*)         [[ "$choice" == *"AI Triple"* ]] && f_ai || f_aiquintet ;;
+    *localhost*)  f_localhost ;;
+    *ws*)         f_workspace ;;
+    *search*)     f_search ;;
+    *chained*)    f_chained ;;
+    *"bm find"*)  f_bm_find ;;
+    *"bm count"*) f_bm_count ;;
+    *notes*)      f_notes ;;
+    *guide*)      f_guide ;;
+    *ext*)        f_ext ;;
+    *status*)     f_status ;;
+    *backup*)     f_backup ;;
+    *health*)     f_health ;;
+    *"enc-backup"*) vc-note-crypt backup ;;
+    *enc*)        vc-note-crypt encrypt ;;
+    *dec*)        vc-note-crypt decrypt ;;
+    *ask*)        echo -n "🤖 Sual: "; read -r q; vc-ask "$q" ;;
+    *find*)       echo -n "🔍 Axtarış: "; read -r q; vc-find $q ;;
+    *cockpit*)    vc-cockpit ;;
+    *voice*)      vc-voice listen ;;
+    *timer*)      systemctl --user list-timers vivaldi-health.timer --no-pager ;;
+    *weekly*)     vc-weekly --pdf ;;
+    *categorize*) vc-categorize ;;
+    *share*)      vc-share ${2:-help} ;;
+    *start*)      f_start ;;
+    *kill*)       f_kill ;;
+    *restart*)    f_restart ;;
+  esac
+}
+
+# ── Direct command (script-friendly) ─────────────────────────────
+case "${1:-}" in
+  "")          f_menu ;;
+  dash)        f_dash ;;
+  ai)          f_ai ;;
+  aiquintet|q) f_aiquintet ;;
+  localhost|l) f_localhost ;;
+  ws)          f_workspace ;;
+  search|s)    f_search ;;
+  chained|c)   f_chained ;;
+  bm)
+    case "${2:-}" in
+      find) f_bm_find ;;
+      count) f_bm_count ;;
+      *) echo "vc bm find | vc bm count" ;;
+    esac
+    ;;
+  notes|n)     f_notes ;;
+  guide|g)     f_guide ;;
+  ext)         f_ext ;;
+  status|st)   f_status ;;
+  backup|b)    f_backup ;;
+  health|h)    f_health ;;
+  enc)         vc-note-crypt encrypt ;;
+  dec)         vc-note-crypt decrypt ;;
+  enc-backup)  vc-note-crypt backup ;;
+  ask|a)       shift; vc-ask "$@" ;;
+  find|f)      shift; vc-find "$@" ;;
+  cockpit|cp)  vc-cockpit ;;
+  voice|vv)    shift; vc-voice "${1:-listen}" ;;
+  weekly|w)    shift; vc-weekly "$@" ;;
+  categorize|cat) shift; vc-categorize "$@" ;;
+  share|sh)    shift; vc-share "${1:-help}" ;;
+  timer)       systemctl --user list-timers vivaldi-health.timer --no-pager ;;
+  start)       f_start ;;
+  kill|k|stop) f_kill ;;
+  restart|r)   f_restart ;;
+  open)        v_open "${2}"; echo "✓ $2" ;;
+  help|--help|-h)
+    cat << 'EOF'
+🚀 vc — Vivaldi CLI
+
+İstifadə:
+  vc                  → İnteraktiv menyu (TÖVSİYƏ — yadda saxlamaq lazım deyil)
+  vc <komanda>        → Birbaşa icra
+
+Birbaşa komandalar:
+  dash, ai, aiquintet, localhost, ws, search, chained,
+  bm find/count, notes, guide, ext,
+  status, backup, health, start, kill, restart, open <URL>
+
+Qısaltmalar:
+  q (aiquintet), l (localhost), s (search), c (chained),
+  n (notes), g (guide), st (status), b (backup), h (health),
+  k (kill), r (restart)
+EOF
+    ;;
+  *)
+    echo "❌ Bilinməyən: $1"
+    echo "vc — interactive menyu üçün argumentsiz işlət"
+    ;;
+esac

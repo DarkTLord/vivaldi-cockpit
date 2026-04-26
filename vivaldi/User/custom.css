@@ -1,0 +1,398 @@
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║   Vivaldi UI Mods Pro — Adil's 2026 Catppuccin Power Mode     ║
+   ║   Path: ~/.config/vivaldi/User/custom.css                     ║
+   ║   Activate: Settings → Appearance → Custom UI Modifications   ║
+   ║   Aktivləşdir: ~/.config/vivaldi/User                         ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 1. WORKSPACE — pill düymələr + gradient + active glow            */
+/* ═══════════════════════════════════════════════════════════════ */
+.WorkspaceButton, button.workspace-button {
+  border-radius: 999px !important;
+  padding: 5px 14px !important;
+  margin: 2px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 600 !important;
+}
+.WorkspaceButton:hover, button.workspace-button:hover {
+  background: linear-gradient(135deg, rgba(203, 166, 247, 0.2), rgba(137, 180, 250, 0.15)) !important;
+  transform: translateY(-1px);
+}
+.WorkspaceButton.active, button.workspace-button.active {
+  background: linear-gradient(135deg, #cba6f7, #89b4fa) !important;
+  color: #1e1e2e !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(203, 166, 247, 0.4),
+              0 0 24px rgba(203, 166, 247, 0.2) !important;
+  animation: pulse-active 2.5s ease-in-out infinite !important;
+}
+@keyframes pulse-active {
+  0%, 100% { box-shadow: 0 4px 12px rgba(203, 166, 247, 0.4), 0 0 24px rgba(203, 166, 247, 0.2); }
+  50%      { box-shadow: 0 4px 16px rgba(203, 166, 247, 0.6), 0 0 32px rgba(203, 166, 247, 0.35); }
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 2. TAB — workspace color indicators + smooth animasiya           */
+/* ═══════════════════════════════════════════════════════════════ */
+.tab {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 8px !important;
+  position: relative !important;
+}
+.tab:hover {
+  background: linear-gradient(135deg,
+    rgba(203, 166, 247, 0.12),
+    rgba(137, 180, 250, 0.08)) !important;
+  transform: translateX(2px);
+}
+.tab.active {
+  background: linear-gradient(135deg,
+    rgba(203, 166, 247, 0.28),
+    rgba(137, 180, 250, 0.18)) !important;
+}
+.tab.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12%;
+  width: 3px;
+  height: 76%;
+  background: linear-gradient(180deg, #cba6f7, #89b4fa, #94e2d5);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 8px rgba(203, 166, 247, 0.6);
+}
+
+/* Workspace-spesifik tab rəng strip-i (tab data-attribute əsasında) */
+.tab[data-workspace*="Dev"]::after,
+.tab[data-workspace*="dev"]::after {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+  width: 2px; background: #89b4fa;
+}
+.tab[data-workspace*="AI"]::after {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+  width: 2px; background: #cba6f7;
+}
+.tab[data-workspace*="Security"]::after {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+  width: 2px; background: #f38ba8;
+}
+.tab[data-workspace*="Design"]::after {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+  width: 2px; background: #f5c2e7;
+}
+
+/* Tab close button — daha gözəl */
+.tab .close button {
+  border-radius: 50% !important;
+  transition: all 0.15s !important;
+  opacity: 0.6;
+}
+.tab .close button:hover {
+  background: #f38ba8 !important;
+  color: #1e1e2e !important;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Tab loading progress bar */
+.tab.loading .favicon-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #cba6f7, #89b4fa);
+  animation: tab-loading 1.5s ease-in-out infinite;
+}
+@keyframes tab-loading {
+  0%   { transform: scaleX(0); transform-origin: left; }
+  50%  { transform: scaleX(1); transform-origin: left; }
+  51%  { transform-origin: right; }
+  100% { transform: scaleX(0); transform-origin: right; }
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 3. ADDRESS BAR — premium glassmorphism                            */
+/* ═══════════════════════════════════════════════════════════════ */
+.UrlBar {
+  border-radius: 12px !important;
+  transition: all 0.2s !important;
+  backdrop-filter: blur(8px);
+}
+.UrlBar:focus-within {
+  box-shadow: 0 0 0 3px rgba(203, 166, 247, 0.3),
+              0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  border-color: #cba6f7 !important;
+}
+.UrlBar input {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace !important;
+  font-size: 13.5px !important;
+  letter-spacing: -0.01em;
+}
+/* URL drop-down suggestions */
+.UrlBar-AddressField .OmniDropdown {
+  border-radius: 12px !important;
+  margin-top: 4px !important;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(203, 166, 247, 0.2) !important;
+}
+.UrlBar-AddressField .OmniDropdown .item:hover {
+  background: linear-gradient(90deg, rgba(203, 166, 247, 0.15), transparent) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 4. SIDEBAR — animated panels + glassmorphism                     */
+/* ═══════════════════════════════════════════════════════════════ */
+#panels-container {
+  border-radius: 0 16px 16px 0 !important;
+  backdrop-filter: blur(16px) !important;
+  background: rgba(24, 24, 37, 0.85) !important;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.panel-group .panel {
+  animation: panel-slide-in 0.3s ease-out;
+}
+@keyframes panel-slide-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 5. SCROLLBAR — minimal Catppuccin                                 */
+/* ═══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track {
+  background: #1e1e2e;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #45475a, #585b70);
+  border-radius: 5px;
+  border: 2px solid #1e1e2e;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #cba6f7, #89b4fa);
+}
+::-webkit-scrollbar-corner { background: #1e1e2e; }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 6. SPEED DIAL — glassmorphism + 3D hover                         */
+/* ═══════════════════════════════════════════════════════════════ */
+.SpeedDial-Item, .speeddial-item, .startpage-bookmark {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  position: relative;
+}
+.SpeedDial-Item::before, .speeddial-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(203, 166, 247, 0), rgba(137, 180, 250, 0));
+  transition: background 0.3s;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.SpeedDial-Item:hover, .speeddial-item:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4),
+              0 0 0 2px rgba(203, 166, 247, 0.5),
+              0 0 24px rgba(203, 166, 247, 0.25) !important;
+}
+.SpeedDial-Item:hover::before, .speeddial-item:hover::before {
+  background: linear-gradient(135deg, rgba(203, 166, 247, 0.15), rgba(137, 180, 250, 0.1));
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 7. NOTES PANEL — better readability + monospace                  */
+/* ═══════════════════════════════════════════════════════════════ */
+.notes-content, .notes-editor {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+  letter-spacing: -0.01em;
+}
+.note-tree-item {
+  border-radius: 8px !important;
+  margin: 2px !important;
+  transition: background 0.15s !important;
+}
+.note-tree-item:hover {
+  background: rgba(203, 166, 247, 0.1) !important;
+}
+.note-tree-item.selected {
+  background: linear-gradient(90deg, rgba(203, 166, 247, 0.25), transparent) !important;
+  border-left: 3px solid #cba6f7 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 8. STATUS BAR — kompakt overlay                                   */
+/* ═══════════════════════════════════════════════════════════════ */
+#status_bar, .status-bar {
+  font-size: 11px !important;
+  opacity: 0.65;
+  font-family: 'JetBrains Mono', monospace !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(8px);
+  background: rgba(30, 30, 46, 0.8) !important;
+  transition: opacity 0.2s !important;
+}
+#status_bar:hover {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 9. BOOKMARK BAR — kompakt + smooth                               */
+/* ═══════════════════════════════════════════════════════════════ */
+.bookmark-bar {
+  padding: 3px 10px !important;
+  background: linear-gradient(180deg, rgba(24, 24, 37, 0.95), rgba(30, 30, 46, 0.9)) !important;
+  backdrop-filter: blur(10px);
+}
+.bookmark-bar > * {
+  border-radius: 8px !important;
+  margin: 0 2px !important;
+  padding: 4px 8px !important;
+  transition: all 0.15s ease !important;
+  font-weight: 500 !important;
+}
+.bookmark-bar > *:hover {
+  background: linear-gradient(135deg, rgba(203, 166, 247, 0.2), rgba(137, 180, 250, 0.1)) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 10. QUICK COMMANDS (F2) — premium feel                           */
+/* ═══════════════════════════════════════════════════════════════ */
+.QuickCommands, .quick-commands-popup {
+  border-radius: 20px !important;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.6),
+              0 0 0 1px rgba(203, 166, 247, 0.25),
+              0 0 80px rgba(203, 166, 247, 0.15) !important;
+  backdrop-filter: blur(24px);
+  background: rgba(24, 24, 37, 0.95) !important;
+  animation: qc-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+@keyframes qc-fade-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.QuickCommands input {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 18px !important;
+  letter-spacing: -0.02em;
+  font-weight: 500 !important;
+}
+.QuickCommands .item:hover, .QuickCommands .item.selected {
+  background: linear-gradient(90deg, rgba(203, 166, 247, 0.2), transparent) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 11. LOADING BAR — Catppuccin gradient                            */
+/* ═══════════════════════════════════════════════════════════════ */
+#progressbar > div, .progress-bar > div {
+  background: linear-gradient(90deg, #cba6f7, #89b4fa, #94e2d5, #a6e3a1) !important;
+  background-size: 200% 100%;
+  animation: progress-shimmer 2s linear infinite;
+  height: 2px !important;
+}
+@keyframes progress-shimmer {
+  from { background-position: 0% 0; }
+  to   { background-position: 200% 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 12. CONTEXT MENU — daha gözəl                                    */
+/* ═══════════════════════════════════════════════════════════════ */
+.context-menu, .menu-popup {
+  border-radius: 12px !important;
+  backdrop-filter: blur(16px);
+  background: rgba(24, 24, 37, 0.95) !important;
+  border: 1px solid rgba(203, 166, 247, 0.2) !important;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4) !important;
+  padding: 4px !important;
+}
+.context-menu .item, .menu-popup .menu-item {
+  border-radius: 6px !important;
+  padding: 6px 12px !important;
+  transition: background 0.1s !important;
+}
+.context-menu .item:hover, .menu-popup .menu-item:hover {
+  background: linear-gradient(90deg, rgba(203, 166, 247, 0.25), transparent) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 13. WINDOW CONTROLS — premium look                               */
+/* ═══════════════════════════════════════════════════════════════ */
+.window-buttongroup button {
+  transition: all 0.15s !important;
+  border-radius: 50% !important;
+  margin: 0 3px !important;
+}
+.window-buttongroup button:hover {
+  background: rgba(203, 166, 247, 0.2) !important;
+  transform: scale(1.15);
+}
+.window-buttongroup button[title*="Close"]:hover {
+  background: #f38ba8 !important;
+  color: #1e1e2e !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 14. DIALOG / MODAL — glassmorphism                               */
+/* ═══════════════════════════════════════════════════════════════ */
+.modal, .dialog, .popup {
+  border-radius: 16px !important;
+  backdrop-filter: blur(20px);
+  background: rgba(24, 24, 37, 0.92) !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(203, 166, 247, 0.15) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 15. SELECTION — Catppuccin highlight                             */
+/* ═══════════════════════════════════════════════════════════════ */
+::selection {
+  background: rgba(203, 166, 247, 0.4) !important;
+  color: #cdd6f4 !important;
+}
+::-moz-selection {
+  background: rgba(203, 166, 247, 0.4) !important;
+  color: #cdd6f4 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 16. SETTINGS PAGE — daha gözəl                                   */
+/* ═══════════════════════════════════════════════════════════════ */
+.settings input[type="text"], .settings input[type="url"], .settings textarea {
+  border-radius: 8px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  transition: border 0.2s !important;
+}
+.settings input[type="text"]:focus, .settings textarea:focus {
+  border-color: #cba6f7 !important;
+  box-shadow: 0 0 0 3px rgba(203, 166, 247, 0.2) !important;
+}
+.settings button {
+  border-radius: 8px !important;
+  transition: all 0.15s !important;
+}
+.settings button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 17. DOWNLOAD BAR — premium                                       */
+/* ═══════════════════════════════════════════════════════════════ */
+.downloads-list .download-item {
+  border-radius: 12px !important;
+  transition: all 0.2s !important;
+}
+.downloads-list .download-item:hover {
+  background: rgba(203, 166, 247, 0.1) !important;
+  transform: translateX(4px);
+}

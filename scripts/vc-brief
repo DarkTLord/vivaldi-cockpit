@@ -1,0 +1,113 @@
+#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+"""vc-brief — AI Daily Briefing (Ollama + canlı məlumat)."""
+import sys
+import json
+import requests
+from datetime import datetime
+from rich.console import Console
+from rich.panel import Panel
+from rich.markdown import Markdown
+
+console = Console()
+
+def hn_top(n=3):
+    try:
+        ids = requests.get("https://hacker-news.firebaseio.com/v0/topstories.json", timeout=5).json()[:n]
+        out = []
+        for i in ids:
+            s = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{i}.json", timeout=5).json()
+            out.append(f"- **{s['title']}** (▲{s.get('score',0)}) — {s.get('url','')}")
+        return "\n".join(out)
+    except Exception: return "_HN əlçatmazdır_"
+
+def weather():
+    try:
+        r = requests.get("https://api.open-meteo.com/v1/forecast?latitude=40.4093&longitude=49.8671&current=temperature_2m,wind_speed_10m,weather_code&timezone=Asia/Baku", timeout=5)
+        d = r.json().get("current", {})
+        return f"{d.get('temperature_2m','?')}°C · {d.get('wind_speed_10m','?')} km/h"
+    except Exception: return "n/a"
+
+def proverb():
+    proverbs = [
+        "Vaxt qızıldan qiymətlidir.","Tək əldən səs çıxmaz.","Bilik insanın əbədi zənginliyidir.",
+        "Az danış çox dinlə.","Səbr — uğurun açarıdır.","Hər işin öz vaxtı var.",
+        "Düşmən gücdə deyil, ağılda olar.","İlk addım ən çətinidir.","Tələsən təngnəfəs olar."
+    ]
+    idx = (datetime.now() - datetime(datetime.now().year, 1, 1)).days % len(proverbs)
+    return proverbs[idx]
+
+def github_pulse():
+    try:
+        # gh CLI ilə
+        import subprocess
+        out = subprocess.run(["gh", "api", "user/issues?state=open&per_page=5"],
+            capture_output=True, text=True, timeout=5)
+        if out.returncode != 0: return "_GitHub auth lazımdır_"
+        issues = json.loads(out.stdout)
+        if not issues: return "_Açıq issue yoxdur_"
+        return "\n".join(f"- {i['title']} ({i['repository']['name']})" for i in issues[:3])
+    except Exception: return "_n/a_"
+
+def ollama_summary(model="mistral:7b"):
+    """AI cəhdi günün yekun xülasəsi yaratmaq."""
+    hn = hn_top(3)
+    prompt = f"""Adil üçün Azərbaycan dilində qısa daily briefing yaz (3-4 cümlə).
+Bu məlumatlardan istifadə et:
+
+Hacker News top 3:
+{hn}
+
+Bu səhər Bakı havası: {weather()}
+
+Yaz: dostca, motivasiya verici, Azərbaycan dilində. Format: bullet siyahı yox, axıcı paraqraf."""
+
+    try:
+        r = requests.post("http://localhost:11434/api/generate",
+            json={"model": model, "prompt": prompt, "stream": False,
+                  "options": {"num_predict": 250, "temperature": 0.7}}, timeout=60)
+        return r.json().get("response", "").strip()
+    except Exception as e: return f"_AI cavab vermədi: {e}_"
+
+def main():
+    quiet = "--quiet" in sys.argv or "-q" in sys.argv
+    plain = "--plain" in sys.argv
+
+    now = datetime.now()
+    h = now.hour
+    if h < 6: greet = "🌙 Gecə yarısı"
+    elif h < 12: greet = "🌅 Sabahın xeyir"
+    elif h < 17: greet = "☀️ Salam"
+    elif h < 22: greet = "🌆 Axşamın xeyir"
+    else: greet = "🌃 Gecən xeyir"
+
+    sections = []
+    sections.append(f"# {greet} Adil")
+    sections.append(f"\n**{now.strftime('%A, %d %B %Y · %H:%M')}** · Bakı: {weather()}\n")
+    sections.append(f"## 📜 Günün atalar sözü\n> _{proverb()}_\n")
+    sections.append(f"## 📰 Hacker News Top 3\n{hn_top(3)}\n")
+    gh = github_pulse()
+    if "n/a" not in gh and "yoxdur" not in gh:
+        sections.append(f"## 💼 GitHub açıq issue-lar\n{gh}\n")
+
+    if not quiet:
+        with console.status("🤖 AI xülasə hazırlanır..."):
+            ai = ollama_summary()
+        sections.append(f"## 🤖 AI Xülasəsi\n{ai}\n")
+
+    sections.append(f"\n---\n*vc-brief · {now.strftime('%Y-%m-%d %H:%M')}*")
+
+    md = "\n".join(sections)
+
+    if plain:
+        print(md)
+    else:
+        console.print(Panel(Markdown(md), border_style="magenta", title="📡 Daily Briefing"))
+
+    # Save brief
+    from pathlib import Path
+    brief_dir = Path.home() / "Documents/vivaldi-briefs"
+    brief_dir.mkdir(parents=True, exist_ok=True)
+    (brief_dir / f"brief-{now.strftime('%Y%m%d')}.md").write_text(md)
+
+if __name__ == "__main__":
+    main()

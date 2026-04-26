@@ -1,0 +1,385 @@
+#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+"""vc-server — Vivaldi Cockpit Web Dashboard (localhost:8001)"""
+import sys
+import os
+import json
+import asyncio
+import subprocess
+from pathlib import Path
+from datetime import datetime
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse
+import uvicorn
+
+HOME = Path.home()
+PORT = 8001
+HOST = "127.0.0.1"
+app = FastAPI(title="Vivaldi Cockpit")
+
+INDEX_HTML = """<!DOCTYPE html>
+<html lang="az"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vivaldi Cockpit Server</title>
+<style>
+:root{--base:#1e1e2e;--mantle:#181825;--surface0:#313244;--surface1:#45475a;--text:#cdd6f4;--subtext:#a6adc8;--mauve:#cba6f7;--blue:#89b4fa;--green:#a6e3a1;--peach:#fab387;--red:#f38ba8;--yellow:#f9e2af;--teal:#94e2d5}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',system-ui,sans-serif}
+body{background:var(--base);color:var(--text);min-height:100vh;padding:24px;background-image:radial-gradient(at 20% 0%,rgba(203,166,247,.12) 0,transparent 50%),radial-gradient(at 80% 100%,rgba(137,180,250,.10) 0,transparent 50%)}
+.container{max-width:1400px;margin:0 auto}
+h1{font-size:32px;background:linear-gradient(135deg,var(--mauve),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.sub{color:var(--subtext);margin-bottom:24px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.card{background:var(--mantle);border:1px solid var(--surface0);border-radius:14px;padding:20px;transition:all .2s}
+.card:hover{border-color:var(--mauve);transform:translateY(-2px)}
+.card h2{font-size:14px;color:var(--mauve);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+.metric{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--surface0)}
+.metric:last-child{border-bottom:none}
+.metric .label{color:var(--subtext);font-size:13px}
+.metric .value{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--surface0);border-radius:3px;overflow:hidden;margin-top:4px;width:100%}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue));transition:width .3s}
+.btn-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:8px}
+.btn{background:var(--surface0);border:1px solid var(--surface1);border-radius:8px;padding:10px;color:var(--text);cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;text-align:center;text-decoration:none}
+.btn:hover{background:var(--mauve);color:var(--base)}
+.btn.danger:hover{background:var(--red)}
+input,.search-box{width:100%;background:var(--surface0);border:1px solid var(--surface1);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none}
+input:focus{border-color:var(--mauve)}
+.results{margin-top:12px;max-height:300px;overflow-y:auto}
+.result-item{padding:8px;border-radius:6px;margin-bottom:4px;cursor:pointer;transition:background .15s}
+.result-item:hover{background:var(--surface0)}
+.result-item .title{color:var(--blue);font-size:13px;display:block}
+.result-item .url{color:var(--subtext);font-size:11px;margin-top:2px}
+pre{background:var(--surface0);padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;color:var(--green);max-height:400px;overflow-y:auto;white-space:pre-wrap}
+.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block;margin-right:6px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.tag{display:inline-block;background:var(--surface0);color:var(--mauve);font-size:10px;padding:2px 8px;border-radius:10px;margin-right:4px}
+</style>
+</head><body>
+<div class="container">
+<h1>🚀 Vivaldi Cockpit Server</h1>
+<p class="sub"><span class="live-dot"></span>Real-time monitoring · Adil's Power Dashboard</p>
+<div class="grid">
+
+<div class="card"><h2>📊 Live Metrics</h2><div id="metrics">Yüklənir...</div></div>
+
+<div class="card"><h2>🔍 Universal Search</h2>
+<input class="search-box" id="searchInput" placeholder="Bookmark axtarış..." oninput="search()">
+<div class="results" id="searchResults"></div>
+</div>
+
+<div class="card"><h2>🤖 Local AI Chat (Ollama)</h2>
+<input id="aiInput" placeholder="Sualını yaz..." onkeydown="if(event.key==='Enter')askAI()">
+<button class="btn" style="margin-top:8px;width:100%" onclick="askAI()">Sual ver (mistral:7b)</button>
+<pre id="aiOutput" style="margin-top:8px;display:none"></pre>
+</div>
+
+<div class="card"><h2>🚀 Quick Actions</h2>
+<div class="btn-row">
+<a class="btn" onclick="cmd('ai')">🤖 AI Triple</a>
+<a class="btn" onclick="cmd('aiquintet')">🌟 5 AI</a>
+<a class="btn" onclick="cmd('localhost')">🖥️ Localhost</a>
+<a class="btn" onclick="cmd('dash')">🏠 Dashboard</a>
+<a class="btn" onclick="cmd('start')">▶️ Start</a>
+<a class="btn danger" onclick="cmd('kill')">🛑 Kill</a>
+</div>
+</div>
+
+<div class="card"><h2>🍅 Focus Mode</h2>
+<div class="btn-row">
+<a class="btn" onclick="focus(25)">25 dəq</a>
+<a class="btn" onclick="focus(50)">50 dəq</a>
+<a class="btn" onclick="focusBreak()">☕ Fasilə</a>
+</div>
+<div id="focusStatus" style="margin-top:10px;color:var(--subtext);font-size:13px"></div>
+</div>
+
+<div class="card"><h2>📂 Workspace Snapshots</h2>
+<input id="snapName" placeholder="Snapshot adı (məs: tarxen-debug)">
+<div class="btn-row" style="margin-top:8px">
+<a class="btn" onclick="snapSave()">💾 Saxla</a>
+<a class="btn" onclick="snapList()">📋 Siyahı</a>
+</div>
+<div id="snapResults" style="margin-top:10px"></div>
+</div>
+
+<div class="card"><h2>📡 Daily Briefing</h2>
+<button class="btn" style="width:100%" onclick="briefGen()">📨 AI brief generate</button>
+<pre id="briefOutput" style="margin-top:10px;display:none"></pre>
+</div>
+
+<div class="card"><h2>🩺 Bookmark Health</h2>
+<div class="btn-row">
+<a class="btn" onclick="bmCount()">📊 Statistika</a>
+<a class="btn" onclick="cmd('weekly')">📅 Həftəlik</a>
+</div>
+<pre id="bmOutput" style="margin-top:8px;display:none"></pre>
+</div>
+
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function clear(el){while(el.firstChild)el.removeChild(el.firstChild);}
+function mkEl(tag,opts={}){const e=document.createElement(tag);if(opts.cls)e.className=opts.cls;if(opts.text)e.textContent=opts.text;if(opts.html_safe)e.textContent=opts.html_safe;return e;}
+
+async function api(path){const r=await fetch(path);return r.headers.get('content-type')?.includes('json')?r.json():r.text();}
+
+const ws=new WebSocket(`ws://${location.host}/ws/metrics`);
+ws.onmessage=e=>{
+  const d=JSON.parse(e.data);
+  const c=$('metrics');clear(c);
+  const items=[
+    ['Status',d.status],
+    ['Vivaldi RAM',d.ram_mb.toFixed(0)+' MB'],
+    ['Sistem RAM',d.sys_ram_used.toFixed(1)+'/'+d.sys_ram_total.toFixed(1)+' GB',d.sys_ram_used/d.sys_ram_total*100],
+    ['Proseslər',String(d.procs)],
+    ['Bookmark',String(d.bookmarks)],
+    ['Disk',d.disk_mb.toFixed(0)+' MB'],
+    ['Vaxt',d.time]
+  ];
+  for(const [label,val,bar] of items){
+    const m=mkEl('div',{cls:'metric'});
+    m.appendChild(mkEl('span',{cls:'label',text:label}));
+    const v=mkEl('div');
+    v.appendChild(mkEl('span',{cls:'value',text:val}));
+    if(bar!=null){
+      const b=mkEl('div',{cls:'bar'});
+      const f=mkEl('div',{cls:'bar-fill'});
+      f.style.width=bar+'%';b.appendChild(f);v.appendChild(b);
+    }
+    m.appendChild(v);c.appendChild(m);
+  }
+};
+
+let searchTimer;
+function search(){
+  clearTimeout(searchTimer);
+  const q=$('searchInput').value.trim();
+  if(!q){clear($('searchResults'));return;}
+  searchTimer=setTimeout(async()=>{
+    const r=await api('/api/search?q='+encodeURIComponent(q));
+    const sr=$('searchResults');clear(sr);
+    if(!r.results.length){sr.appendChild(mkEl('div',{text:'Heç bir nəticə'}));return;}
+    for(const x of r.results){
+      const item=mkEl('div',{cls:'result-item'});
+      const tag=mkEl('span',{cls:'tag',text:x.source});
+      const title=mkEl('span',{cls:'title',text:x.name});
+      const url=mkEl('div',{cls:'url',text:x.url||x.preview||''});
+      item.appendChild(tag);item.appendChild(title);item.appendChild(url);
+      item.onclick=()=>window.open(x.url,'_blank');
+      sr.appendChild(item);
+    }
+  },300);
+}
+
+async function cmd(c){const r=await api('/api/cmd/'+c);alert(r.message);}
+
+async function askAI(){
+  const q=$('aiInput').value.trim();if(!q)return;
+  const o=$('aiOutput');o.style.display='block';o.textContent='⏳ Düşünür...';
+  const r=await api('/api/ask?q='+encodeURIComponent(q));
+  o.textContent=r.answer;
+}
+
+async function focus(min){
+  const r=await api('/api/focus?duration='+min);
+  $('focusStatus').textContent=r.message;
+}
+async function focusBreak(){
+  const r=await api('/api/focus?duration=5&mode=break');
+  $('focusStatus').textContent=r.message;
+}
+
+async function snapSave(){
+  const name=$('snapName').value.trim()||'snap-'+Date.now();
+  const r=await api('/api/snap/save?name='+encodeURIComponent(name));
+  alert(r.message);snapList();
+}
+async function snapList(){
+  const r=await api('/api/snap/list');
+  const c=$('snapResults');clear(c);
+  if(!r.snapshots.length){c.appendChild(mkEl('div',{text:'Snapshot yoxdur'}));return;}
+  for(const s of r.snapshots){
+    const item=mkEl('div',{cls:'result-item'});
+    item.appendChild(mkEl('span',{cls:'title',text:s.name}));
+    item.appendChild(mkEl('div',{cls:'url',text:s.tabs+' tab · '+s.created}));
+    const btn=mkEl('button',{cls:'btn',text:'▶️ Bərpa'});btn.style.marginTop='4px';
+    btn.onclick=()=>snapLoad(s.name);
+    item.appendChild(btn);
+    c.appendChild(item);
+  }
+}
+async function snapLoad(name){const r=await api('/api/snap/load?name='+encodeURIComponent(name));alert(r.message);}
+
+async function briefGen(){
+  const o=$('briefOutput');o.style.display='block';o.textContent='📡 AI brief hazırlanır (15-30 san)...';
+  const r=await api('/api/brief');o.textContent=r.brief;
+}
+async function bmCount(){
+  const r=await api('/api/bm/count');
+  const o=$('bmOutput');o.style.display='block';
+  o.textContent='📊 '+r.urls+' URL · '+r.folders+' folder';
+}
+
+snapList();
+</script>
+</body></html>"""
+
+@app.get("/", response_class=HTMLResponse)
+def index(): return INDEX_HTML
+
+@app.websocket("/ws/metrics")
+async def ws_metrics(ws: WebSocket):
+    await ws.accept()
+    try:
+        while True:
+            await ws.send_json(get_metrics())
+            await asyncio.sleep(2)
+    except WebSocketDisconnect: pass
+
+def get_metrics():
+    out = subprocess.run(["pgrep", "-f", "/opt/vivaldi/vivaldi-bin"], capture_output=True, text=True)
+    procs = len(out.stdout.strip().splitlines()) if out.stdout.strip() else 0
+    ram = 0
+    if procs:
+        ps = subprocess.run(["ps", "-eo", "rss,comm"], capture_output=True, text=True).stdout
+        ram = sum(int(l.split()[0]) for l in ps.splitlines()[1:] if "vivaldi" in l) / 1024
+    try:
+        with open("/proc/meminfo") as f:
+            mi = {l.split(":")[0]: int(l.split()[1]) for l in f if ":" in l}
+        sys_total = mi.get("MemTotal", 1) / 1024 / 1024
+        sys_used = sys_total - mi.get("MemAvailable", 0) / 1024 / 1024
+    except Exception: sys_total, sys_used = 1, 0
+    bm_path = HOME / ".config/vivaldi/Default/Bookmarks"
+    try:
+        d = json.loads(bm_path.read_text())
+        urls = [0]
+        def walk(n):
+            if n.get("type") == "url": urls[0] += 1
+            for c in n.get("children", []): walk(c)
+        for r in d.get("roots", {}).values(): walk(r)
+        bm = urls[0]
+    except Exception: bm = 0
+    try:
+        disk = int(subprocess.check_output(["du", "-sb", str(HOME / ".config/vivaldi")]).split()[0]) / 1024 / 1024
+    except Exception: disk = 0
+    return {
+        "status": "✅ Aktiv" if procs else "❌ Qapalı",
+        "ram_mb": ram, "sys_ram_used": sys_used, "sys_ram_total": sys_total,
+        "procs": procs, "bookmarks": bm, "disk_mb": disk,
+        "time": datetime.now().strftime("%H:%M:%S")
+    }
+
+@app.get("/api/search")
+def search_api(q: str = ""):
+    if not q: return {"results": []}
+    bm_path = HOME / ".config/vivaldi/Default/Bookmarks"
+    results = []
+    try:
+        d = json.loads(bm_path.read_text())
+        ql = q.lower()
+        def walk(n):
+            if n.get("type") == "url":
+                if ql in (n.get("name","")+" "+n.get("url","")).lower():
+                    results.append({"source":"📑 BM","name":n.get("name",""),"url":n.get("url","")})
+            for c in n.get("children", []): walk(c)
+        for r in d.get("roots", {}).values(): walk(r)
+    except Exception: pass
+    return {"results": results[:15]}
+
+@app.get("/api/cmd/{action}")
+def cmd_api(action: str):
+    valid = {"ai","aiquintet","localhost","dash","start","kill","weekly","health","ext","backup"}
+    if action.split()[0] in valid:
+        try:
+            subprocess.Popen(["vc"] + action.split())
+            return {"message": f"✓ vc {action} icra olundu"}
+        except Exception as e: return {"message": f"❌ {e}"}
+    return {"message": "❌ Bilinməyən komanda"}
+
+@app.get("/api/ask")
+def ask_api(q: str):
+    try:
+        import requests
+        r = requests.post("http://localhost:11434/api/generate",
+            json={"model":"mistral:7b","prompt":q,"stream":False,
+                  "options":{"num_predict":500,"temperature":0.7}}, timeout=60)
+        return {"answer": r.json().get("response", "(boş cavab)")}
+    except Exception as e: return {"answer": f"❌ Ollama: {e}"}
+
+@app.get("/api/focus")
+def focus_api(duration: int = 25, mode: str = "work"):
+    try:
+        subprocess.Popen(["vc-focus", str(duration), mode])
+        emoji = "🍅" if mode == "work" else "☕"
+        return {"message": f"{emoji} {mode} {duration} dəq başladı"}
+    except Exception as e: return {"message": f"❌ {e}"}
+
+@app.get("/api/snap/save")
+def snap_save(name: str):
+    try:
+        out = subprocess.run(["vc-snap", "save", name], capture_output=True, text=True, timeout=10)
+        return {"message": out.stdout.strip() or "💾 saxlanıldı"}
+    except Exception as e: return {"message": f"❌ {e}"}
+
+@app.get("/api/snap/list")
+def snap_list_api():
+    snap_dir = HOME / ".config/vivaldi-snapshots"
+    if not snap_dir.exists(): return {"snapshots": []}
+    snaps = []
+    for f in sorted(snap_dir.glob("*.json")):
+        if "-bookmarks" in f.name or "-tabs" in f.name: continue
+        try:
+            d = json.loads(f.read_text())
+            snaps.append({"name": d.get("name", f.stem), "tabs": len(d.get("tabs", [])),
+                          "created": d.get("created", "")[:16]})
+        except Exception: pass
+    return {"snapshots": snaps}
+
+@app.get("/api/snap/load")
+def snap_load_api(name: str):
+    try:
+        out = subprocess.run(["vc-snap", "load", name], capture_output=True, text=True, timeout=15)
+        return {"message": out.stdout.strip() or f"✓ {name} bərpa olundu"}
+    except Exception as e: return {"message": f"❌ {e}"}
+
+@app.get("/api/brief")
+def brief_api():
+    try:
+        out = subprocess.run(["vc-brief"], capture_output=True, text=True, timeout=120)
+        return {"brief": out.stdout or out.stderr or "❌ Brief boş"}
+    except Exception as e: return {"brief": f"❌ {e}"}
+
+@app.get("/api/bm/count")
+def bm_count():
+    bm_path = HOME / ".config/vivaldi/Default/Bookmarks"
+    try:
+        d = json.loads(bm_path.read_text())
+        urls, folders = [0], [0]
+        def walk(n):
+            if n.get("type") == "url": urls[0] += 1
+            elif n.get("type") == "folder": folders[0] += 1
+            for c in n.get("children", []): walk(c)
+        for r in d.get("roots", {}).values(): walk(r)
+        return {"urls": urls[0], "folders": folders[0]}
+    except Exception as e: return {"urls": 0, "folders": 0}
+
+def main():
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "start"
+    if cmd in ("start", "run"):
+        print(f"🚀 Vivaldi Cockpit: http://{HOST}:{PORT}")
+        uvicorn.run(app, host=HOST, port=PORT, log_level="warning")
+    elif cmd in ("status", "st"):
+        try:
+            import requests
+            r = requests.get(f"http://{HOST}:{PORT}/api/bm/count", timeout=2)
+            print(f"✓ Server aktiv: http://{HOST}:{PORT} · BM: {r.json()}")
+        except Exception:
+            print("❌ Server qapalıdır")
+    elif cmd == "open":
+        subprocess.Popen(["vivaldi", f"http://{HOST}:{PORT}"])
+    else:
+        print(f"vc-server start | status | open")
+
+if __name__ == "__main__":
+    main()

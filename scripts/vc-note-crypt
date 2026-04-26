@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  vc-note-crypt — Vivaldi Notes-larını GPG ilə şifrələ        ║
+# ║  İstifadə:                                                    ║
+# ║    vc-note-crypt encrypt   — Note seç və şifrələ             ║
+# ║    vc-note-crypt decrypt   — Şifrəli note-u oxu              ║
+# ║    vc-note-crypt backup    — Bütün notes-ları şifrəli backup ║
+# ║    vc-note-crypt restore   — Şifrəli backup-dan bərpa et     ║
+# ╚══════════════════════════════════════════════════════════════╝
+set -euo pipefail
+
+NOTES="$HOME/.config/vivaldi/Default/Notes"
+GPG_USER="your-email@example.com"
+BACKUP_DIR="$HOME/.config/vivaldi-encrypted-notes"
+mkdir -p "$BACKUP_DIR"
+
+FZF_OPTS=(
+  --height=70% --layout=reverse --border=rounded --margin=1 --padding=1
+  --color='bg+:#313244,bg:#1e1e2e,hl:#f38ba8,fg:#cdd6f4,prompt:#cba6f7,pointer:#f5e0dc,border:#cba6f7'
+)
+
+cmd="${1:-help}"
+
+vivaldi_running() {
+  pgrep -f "[/]opt/vivaldi/vivaldi-bin" > /dev/null
+}
+
+require_vivaldi_closed() {
+  if vivaldi_running; then
+    echo "⚠️  Vivaldi açıqdır. Notes faylına yazmaq üçün bağlamaq lazımdır."
+    echo -n "İndi bağlayım? [y/N] "
+    read -r ans
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+      pkill -SIGTERM -f "vivaldi-bin" 2>/dev/null || true
+      sleep 3
+      pkill -SIGKILL -f "vivaldi-bin" 2>/dev/null || true
+      sleep 1
+      echo "✓ Vivaldi bağlandı"
+    else
+      echo "❌ İmtina edildi"
+      exit 1
+    fi
+  fi
+}
+
+case "$cmd" in
+  encrypt|enc|e)
+    # Note seç
+    subjects=$(jq -r '.children[] | select(.type=="note") | .subject' "$NOTES" | grep -v '^$' || true)
+    [[ -z "$subjects" ]] && { echo "❌ Heç bir note yoxdur"; exit 1; }
+
+    chosen=$(echo "$subjects" | fzf "${FZF_OPTS[@]}" --header="🔐 Şifrələnəcək note-u seç" --prompt="Note ❯ ")
+    [[ -z "$chosen" ]] && exit 0
+
+    # Already encrypted?
+    cur_content=$(jq -r --arg s "$chosen" '.children[] | select(.subject==$s) | .content' "$NOTES")
+    if [[ "$cur_content" == *"BEGIN PGP MESSAGE"* ]]; then
+      echo "⚠️  Bu note artıq şifrələnib"
+      exit 0
+    fi
+
+    require_vivaldi_closed
+
+    # Encrypt content
+    encrypted=$(echo "$cur_content" | gpg --encrypt --armor --recipient "$GPG_USER" --trust-model always 2>/dev/null)
+
+    # Replace in Notes JSON
+    cp "$NOTES" "$NOTES.bak.$(date +%s)"
+    jq --arg s "$chosen" --arg c "🔐 [Şifrəli — vc-note-crypt decrypt ilə oxu]\n\n$encrypted" \
+      '(.children[] | select(.subject==$s) | .content) |= $c' \
+      "$NOTES" > "$NOTES.tmp" && mv "$NOTES.tmp" "$NOTES"
+
+    # Remove checksum
+    jq 'del(.checksum) | del(.checksum_sha256)' "$NOTES" > "$NOTES.tmp" && mv "$NOTES.tmp" "$NOTES"
+
+    echo "✅ Note şifrələndi: $chosen"
+    echo "   Content artıq PGP-armored formatdadır."
+    echo "   Vivaldi-ni aç və Notes panel-də gör."
+    ;;
+
+  decrypt|dec|d)
+    # Şifrəli note-u tap və göstər
+    encrypted_subjects=$(jq -r '.children[] | select(.type=="note") | select(.content | contains("BEGIN PGP MESSAGE")) | .subject' "$NOTES")
+    [[ -z "$encrypted_subjects" ]] && { echo "❌ Şifrəli note tapılmadı"; exit 1; }
+
+    chosen=$(echo "$encrypted_subjects" | fzf "${FZF_OPTS[@]}" --header="🔓 Oxunacaq şifrəli note seç" --prompt="Note ❯ ")
+    [[ -z "$chosen" ]] && exit 0
+
+    # Extract PGP block and decrypt
+    content=$(jq -r --arg s "$chosen" '.children[] | select(.subject==$s) | .content' "$NOTES")
+    pgp_block=$(echo "$content" | sed -n '/BEGIN PGP MESSAGE/,/END PGP MESSAGE/p')
+
+    echo "═══ $chosen ═══"
+    echo ""
+    echo "$pgp_block" | gpg --decrypt 2>/dev/null
+    echo ""
+    echo "═══════════════"
+    ;;
+
+  backup|b)
+    require_vivaldi_closed
+    TS=$(date +%Y%m%d-%H%M%S)
+    OUT="$BACKUP_DIR/notes-$TS.json.gpg"
+    gpg --encrypt --armor --recipient "$GPG_USER" --trust-model always \
+      --output "$OUT" "$NOTES"
+    echo "💾 Backup: $OUT"
+    echo "   Bərpa: vc-note-crypt restore $OUT"
+    ;;
+
+  restore|r)
+    BACKUP_FILE="${2:-}"
+    if [[ -z "$BACKUP_FILE" ]]; then
+      BACKUP_FILE=$(ls -t "$BACKUP_DIR"/notes-*.json.gpg 2>/dev/null | \
+        fzf "${FZF_OPTS[@]}" --header="📥 Bərpa olunacaq backup-ı seç" --prompt="Backup ❯ ")
+      [[ -z "$BACKUP_FILE" ]] && exit 0
+    fi
+    [[ ! -f "$BACKUP_FILE" ]] && { echo "❌ Fayl yoxdur: $BACKUP_FILE"; exit 1; }
+
+    require_vivaldi_closed
+    cp "$NOTES" "$NOTES.before-restore.$(date +%s)"
+    gpg --decrypt --output "$NOTES" "$BACKUP_FILE" 2>/dev/null
+    # Remove checksum
+    jq 'del(.checksum) | del(.checksum_sha256)' "$NOTES" > "$NOTES.tmp" && mv "$NOTES.tmp" "$NOTES"
+    echo "✅ Bərpa olundu: $BACKUP_FILE"
+    ;;
+
+  list|l|ls)
+    echo "📋 Şifrəli note-lar:"
+    jq -r '.children[] | select(.type=="note") | select(.content | contains("BEGIN PGP MESSAGE")) | "  🔐 " + .subject' "$NOTES" 2>/dev/null
+    echo ""
+    echo "💾 Şifrəli backup-lar:"
+    ls -lh "$BACKUP_DIR"/notes-*.json.gpg 2>/dev/null | awk '{print "  📦 " $9 " (" $5 ")"}'
+    ;;
+
+  key)
+    echo "🔑 GPG açar:"
+    gpg --list-secret-keys --keyid-format=long "$GPG_USER" 2>&1
+    echo ""
+    echo "Public key export:"
+    echo "  gpg --export --armor $GPG_USER > my-public-key.asc"
+    echo ""
+    echo "Passphrase əlavə et (təhlükəsizlik üçün):"
+    echo "  gpg --edit-key $GPG_USER → passwd → save"
+    ;;
+
+  help|*)
+    cat << 'EOF'
+🔐 vc-note-crypt — Vivaldi Notes GPG şifrələmə
+
+ƏMRLƏR:
+  encrypt | enc | e        Note seç və şifrələ
+  decrypt | dec | d        Şifrəli note-u oxu (terminalda)
+  backup  | b              Bütün notes-ları şifrəli backup et
+  restore | r [fayl]       Şifrəli backup-dan bərpa et
+  list    | l              Şifrəli note-ları və backup-ları göstər
+  key                      GPG açar məlumatı + passphrase əlavə təlimatı
+  help                     Bu mənyu
+
+NÜMUNƏ:
+  vc-note-crypt encrypt    # Note seç və PGP-armored et
+  vc-note-crypt decrypt    # Şifrəli note-u oxu
+  vc-note-crypt backup     # Bütün notes-ları .gpg-də saxla
+  vc-note-crypt list       # Hər iki növü göstər
+
+XÜSUSİYYƏTLƏR:
+  • ed25519 GPG açar (modern, sürətli)
+  • Vivaldi açıqdırsa avtomatik bağlanma təklif olunur
+  • Hər əməliyyatdan əvvəl backup yaranır (.bak.timestamp)
+  • Şifrəli backup-lar: ~/.config/vivaldi-encrypted-notes/
+EOF
+    ;;
+esac

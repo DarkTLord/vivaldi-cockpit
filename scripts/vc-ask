@@ -1,0 +1,152 @@
+#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+"""
+vc-ask — Terminal-dan Ollama AI ilə danış (streaming + markdown).
+İstifadə:
+  vc-ask "sənin sualın"
+  vc-ask -m targen-code "kod sualın"
+  vc-ask --new                       # yeni conversation
+  vc-ask --history                   # əvvəlki sorğu siyahısı
+"""
+import sys
+import os
+import json
+import argparse
+from pathlib import Path
+from datetime import datetime
+import requests
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.live import Live
+from rich.spinner import Spinner
+
+OLLAMA_URL = "http://localhost:11434"
+HISTORY_DIR = Path.home() / ".cache/vc-ask"
+HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+SESSION_FILE = HISTORY_DIR / "current.json"
+
+console = Console()
+
+def list_models():
+    try:
+        r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=2)
+        return [m["name"] for m in r.json().get("models", [])]
+    except Exception:
+        return []
+
+def stream_chat(model, messages):
+    """Stream response from Ollama."""
+    try:
+        with requests.post(
+            f"{OLLAMA_URL}/api/chat",
+            json={"model": model, "messages": messages, "stream": True},
+            stream=True, timeout=120
+        ) as resp:
+            full = ""
+            with Live(console=console, refresh_per_second=12) as live:
+                for line in resp.iter_lines():
+                    if not line: continue
+                    try:
+                        chunk = json.loads(line)
+                        msg = chunk.get("message", {}).get("content", "")
+                        if msg:
+                            full += msg
+                            live.update(Panel(Markdown(full), title=f"🤖 {model}",
+                                             border_style="magenta"))
+                        if chunk.get("done"): break
+                    except json.JSONDecodeError: continue
+            return full
+    except requests.exceptions.ConnectionError:
+        console.print("[red]✗ Ollama qoşulmaq mümkün olmadı (localhost:11434)[/red]")
+        console.print("[yellow]Yoxla: systemctl status ollama[/yellow]")
+        sys.exit(1)
+
+def load_history():
+    if SESSION_FILE.exists():
+        return json.loads(SESSION_FILE.read_text())
+    return []
+
+def save_history(messages):
+    SESSION_FILE.write_text(json.dumps(messages, indent=2))
+
+def archive_session(messages):
+    if not messages: return
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    archive = HISTORY_DIR / f"session-{ts}.json"
+    archive.write_text(json.dumps(messages, indent=2))
+    console.print(f"[dim]💾 Saxlanıldı: {archive.name}[/dim]")
+
+def main():
+    parser = argparse.ArgumentParser(description="vc-ask — Local AI conversation")
+    parser.add_argument("question", nargs="*", help="Sualın (boş — interaktiv)")
+    parser.add_argument("-m", "--model", default="targen-main:latest", help="Ollama model")
+    parser.add_argument("--new", action="store_true", help="Yeni conversation")
+    parser.add_argument("--history", action="store_true", help="Keçmiş sorğuları göstər")
+    parser.add_argument("--list-models", action="store_true", help="Mövcud modellər")
+    args = parser.parse_args()
+
+    if args.list_models:
+        models = list_models()
+        console.print(Panel("\n".join(f"• {m}" for m in models),
+                            title="🦙 Ollama Modellər", border_style="blue"))
+        return
+
+    if args.history:
+        files = sorted(HISTORY_DIR.glob("session-*.json"), reverse=True)[:20]
+        for f in files:
+            data = json.loads(f.read_text())
+            first_q = next((m["content"][:80] for m in data if m["role"]=="user"), "")
+            console.print(f"[dim]{f.stem}[/dim]  →  {first_q}")
+        return
+
+    if args.new:
+        if SESSION_FILE.exists():
+            archive_session(load_history())
+            SESSION_FILE.unlink()
+        console.print("[green]✓ Yeni session başladıldı[/green]")
+
+    # Verify model
+    models = list_models()
+    if args.model not in models:
+        console.print(f"[yellow]⚠ Model '{args.model}' tapılmadı[/yellow]")
+        if models:
+            console.print(f"[dim]Mövcud: {', '.join(models[:5])}[/dim]")
+            args.model = models[0]
+            console.print(f"[green]→ İstifadə olunur: {args.model}[/green]")
+        else:
+            console.print("[red]✗ Heç bir Ollama modeli yoxdur[/red]")
+            sys.exit(1)
+
+    history = load_history()
+    question = " ".join(args.question).strip()
+
+    # Interactive mode
+    if not question:
+        console.print(Panel(
+            f"🤖 [bold magenta]vc-ask[/bold magenta] — Model: [cyan]{args.model}[/cyan]\n"
+            f"[dim]Sualını yaz, çıxmaq üçün 'exit' / 'q'. Yeni sessiya: --new[/dim]",
+            border_style="magenta"
+        ))
+        while True:
+            try:
+                question = console.input("[bold cyan]❯ [/bold cyan]").strip()
+            except (KeyboardInterrupt, EOFError):
+                break
+            if question.lower() in ("exit", "q", "quit"):
+                break
+            if not question: continue
+            history.append({"role": "user", "content": question})
+            answer = stream_chat(args.model, history)
+            history.append({"role": "assistant", "content": answer})
+            save_history(history)
+        archive_session(history)
+        return
+
+    # Single-shot mode
+    history.append({"role": "user", "content": question})
+    answer = stream_chat(args.model, history)
+    history.append({"role": "assistant", "content": answer})
+    save_history(history)
+
+if __name__ == "__main__":
+    main()

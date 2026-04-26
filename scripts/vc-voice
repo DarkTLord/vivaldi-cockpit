@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  vc-voice — Səslə Vivaldi idarəsi (hyperwhspr → vc bridge)   ║
+# ║                                                                ║
+# ║  Qurulum: paru -S hyperwhspr (background-da gedir)            ║
+# ║  İstifadə: vc-voice listen     # bir komanda dinlə            ║
+# ║            vc-voice on         # daimi dinləmə (toggle)       ║
+# ║            vc-voice off        # daimi dinləməni dayandır     ║
+# ╚══════════════════════════════════════════════════════════════╝
+set -euo pipefail
+
+LOG="$HOME/.cache/vc-voice.log"
+PID_FILE="$HOME/.cache/vc-voice.pid"
+mkdir -p "$HOME/.cache"
+
+# Engine sıralı yoxlanır (Python whisper əsas, digərləri fallback)
+detect_engine() {
+  if [[ -f "$HOME/.local/bin/vc-voice-whisper.py" ]] && \
+     "$HOME/.local/venvs/vc/bin/python3" -c "import whisper" 2>/dev/null; then
+    echo "openai-whisper"; return
+  fi
+  if command -v hyperwhspr &>/dev/null; then echo "hyperwhspr"; return; fi
+  if command -v nerd-dictation &>/dev/null; then echo "nerd-dictation"; return; fi
+  if command -v whisper-cli &>/dev/null; then echo "whisper-cpp"; return; fi
+  echo "none"
+}
+
+# Səs → mətn (dəstəklənən engine ilə)
+transcribe() {
+  local engine=$1
+  local duration="${2:-5}"
+  case "$engine" in
+    openai-whisper)
+      "$HOME/.local/bin/vc-voice-whisper.py" "$duration" 2>/dev/null
+      ;;
+    hyperwhspr)  hyperwhspr --once 2>/dev/null ;;
+    nerd-dictation)  nerd-dictation begin --output STDOUT --timeout 5 2>/dev/null ;;
+    whisper-cpp)
+      local audio="/tmp/vc-voice-$$.wav"
+      arecord -q -d "$duration" -f S16_LE -c 1 -r 16000 "$audio" 2>/dev/null
+      whisper-cli -m ~/.cache/whisper/ggml-base.bin -f "$audio" -otxt -nt 2>/dev/null
+      rm -f "$audio"
+      ;;
+    *) echo ""; return 1 ;;
+  esac
+}
+
+# Mətndən komandaya çevir (AZ + EN)
+text_to_action() {
+  local text="${1,,}"  # lowercase
+  text=$(echo "$text" | tr -d '.,!?')
+
+  case "$text" in
+    *"yeni tab"*|*"new tab"*)
+      vc dash; echo "→ yeni tab" ;;
+    *"ai lab"*|*"süni intellekt"*|*"ai aç"*)
+      vc ai; echo "→ AI Triple" ;;
+    *"5 ai"*|*"beş ai"*|*"ai quintet"*)
+      vc aiquintet; echo "→ 5 AI" ;;
+    *"localhost"*|*"yerli"*)
+      vc localhost; echo "→ Localhost Triple" ;;
+    *"github"*)
+      vivaldi "https://github.com" &>/dev/null & disown; echo "→ GitHub" ;;
+    *"claude"*)
+      vivaldi "https://claude.ai" &>/dev/null & disown; echo "→ Claude" ;;
+    *"perplexity"*)
+      vivaldi "https://www.perplexity.ai" &>/dev/null & disown; echo "→ Perplexity" ;;
+    *"hava"*|*"weather"*)
+      vivaldi "https://wttr.in/Baku" &>/dev/null & disown; echo "→ Hava" ;;
+    *"reload"*|*"yenilə"*|*"refresh"*)
+      xdotool key F5 2>/dev/null; echo "→ Reload" ;;
+    *"bağla"*|*"close"*)
+      xdotool key ctrl+w 2>/dev/null; echo "→ Tab bağlandı" ;;
+    *"dayandır"*|*"kill"*|*"vivaldi qapat"*)
+      vc kill; echo "→ Vivaldi dayandırıldı" ;;
+    *"başlat"*|*"start"*|*"vivaldi aç"*)
+      vc start; echo "→ Vivaldi başladıldı" ;;
+    *"axtarış"*|*"axtar "*|*"search "*)
+      query="${text#*axtar }"
+      query="${query#*search }"
+      vivaldi "https://www.google.com/search?q=$(echo "$query" | python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.stdin.read().strip()))')" &>/dev/null & disown
+      echo "→ Axtarış: $query" ;;
+    *"dashboard"*|*"kokpit"*|*"cockpit"*)
+      vc dash; echo "→ Dashboard" ;;
+    *"ai sual"*|*"ai soruş"*)
+      query="${text#*soruş }"
+      vc-ask "$query"
+      echo "→ AI cavab" ;;
+    *)
+      echo "❌ Bilinməyən komanda: $text"
+      echo "Komanda nümunələri:"
+      echo "  • 'yeni tab'           • 'AI lab aç'"
+      echo "  • 'localhost'          • 'github'"
+      echo "  • 'claude'             • 'reload'"
+      echo "  • 'tab bağla'          • 'vivaldi dayandır'"
+      echo "  • 'axtar flutter'      • 'AI soruş kod review'"
+      return 1 ;;
+  esac
+}
+
+cmd="${1:-listen}"
+engine=$(detect_engine)
+
+case "$cmd" in
+  status)
+    echo "🎙️  Voice engine: $engine"
+    if [[ "$engine" == "none" ]]; then
+      echo "❌ Heç bir voice engine quraşdırılmayıb"
+      echo ""
+      echo "Quraşdırmaq üçün (ən asanı hyperwhspr):"
+      echo "  paru -S hyperwhspr"
+      echo ""
+      echo "Alternativ (whisper.cpp):"
+      echo "  paru -S whisper-ctranslate2"
+    else
+      echo "✓ Hazırdır"
+    fi
+    if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+      echo "✓ Daimi dinləmə işləyir (PID: $(cat "$PID_FILE"))"
+    fi
+    ;;
+
+  listen|once)
+    if [[ "$engine" == "none" ]]; then
+      echo "❌ Voice engine yoxdur. Yoxla: vc-voice status"
+      exit 1
+    fi
+    echo "🎙️  Dinlənilir... (5 saniyə danış)"
+    text=$(transcribe "$engine")
+    if [[ -z "$text" ]]; then
+      echo "❌ Heç nə eşidilmədi"
+      exit 1
+    fi
+    echo "📝 Eşidildi: \"$text\""
+    text_to_action "$text"
+    ;;
+
+  on|start)
+    if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+      echo "→ Artıq işləyir (PID: $(cat "$PID_FILE"))"
+      exit 0
+    fi
+    if [[ "$engine" == "none" ]]; then
+      echo "❌ Voice engine yoxdur"; exit 1
+    fi
+    echo "🎙️  Daimi dinləmə başlandı (loop)"
+    nohup bash -c "
+      while true; do
+        text=\$(${0##*/} listen 2>>$LOG)
+        sleep 1
+      done
+    " > "$LOG" 2>&1 &
+    echo $! > "$PID_FILE"
+    disown
+    echo "✓ PID: $(cat "$PID_FILE") · Log: $LOG"
+    ;;
+
+  off|stop)
+    if [[ -f "$PID_FILE" ]]; then
+      kill "$(cat "$PID_FILE")" 2>/dev/null || true
+      rm -f "$PID_FILE"
+      echo "🛑 Voice listener dayandırıldı"
+    fi
+    ;;
+
+  test)
+    # Engine olmadan da komanda mapping-i sınaq et
+    text="${2:-ai lab aç}"
+    echo "Test mətn: \"$text\""
+    text_to_action "$text"
+    ;;
+
+  help|*)
+    cat << 'EOF'
+🎙️  vc-voice — Səslə Vivaldi idarəsi
+
+ƏMRLƏR:
+  status            Engine vəziyyəti yoxla
+  listen | once     Bir komanda dinlə (5 san)
+  on    | start     Daimi dinləmə (background)
+  off   | stop      Daimi dinləməni dayandır
+  test "mətn"       Voice olmadan komanda sınaq
+
+DƏSTƏKLƏNƏN ENGINE-LƏR (avtomatik aşkarlanır):
+  1. hyperwhspr (Whisper, AZ dəstəyi)  — paru -S hyperwhspr
+  2. nerd-dictation                     — paru -S nerd-dictation
+  3. whisper-ctranslate2                — paru -S whisper-ctranslate2
+
+SƏS KOMANDALARI:
+  "yeni tab"         "AI lab aç"        "localhost"
+  "github"           "claude"           "perplexity"
+  "reload"           "tab bağla"        "hava"
+  "vivaldi dayandır" "vivaldi başlat"   "dashboard"
+  "axtar <söz>"      "AI soruş <sual>"
+EOF
+    ;;
+esac

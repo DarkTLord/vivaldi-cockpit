@@ -1,0 +1,183 @@
+#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+"""
+vc-cockpit — Real-time Vivaldi monitoring (btop-style terminal dashboard).
+İstifadə: vc cockpit  (Ctrl+C ilə çıx)
+"""
+import os
+import time
+import json
+import subprocess
+from pathlib import Path
+from rich.console import Console
+from rich.live import Live
+from rich.layout import Layout
+from rich.panel import Panel
+from rich.table import Table
+from rich.progress_bar import ProgressBar
+from rich.text import Text
+from rich.align import Align
+from datetime import datetime
+
+console = Console()
+HOME = Path.home()
+BOOKMARKS = HOME / ".config/vivaldi/Default/Bookmarks"
+
+def get_vivaldi_processes():
+    try:
+        out = subprocess.check_output(["ps", "-eo", "pid,rss,pcpu,comm,args"], text=True)
+        procs = []
+        total_rss = 0
+        total_cpu = 0.0
+        for line in out.splitlines()[1:]:
+            parts = line.split(maxsplit=4)
+            if len(parts) < 5: continue
+            pid, rss, cpu, comm, args = parts
+            if "vivaldi-bin" in args:
+                rss_mb = int(rss) / 1024
+                cpu_p = float(cpu)
+                procs.append((int(pid), rss_mb, cpu_p, comm, args))
+                total_rss += rss_mb
+                total_cpu += cpu_p
+        return procs, total_rss, total_cpu
+    except Exception:
+        return [], 0, 0
+
+def get_system_mem():
+    """Returns (used_gb, total_gb)."""
+    try:
+        with open("/proc/meminfo") as f:
+            data = {l.split(":")[0]: int(l.split()[1]) for l in f if ":" in l}
+        total = data.get("MemTotal", 1) / 1024 / 1024
+        avail = data.get("MemAvailable", 0) / 1024 / 1024
+        return total - avail, total
+    except Exception:
+        return 0, 1
+
+def get_tabs_count():
+    """Estimate tabs from helper process count."""
+    try:
+        out = subprocess.check_output(["pgrep", "-f", "vivaldi-bin --type=renderer"], text=True)
+        return len(out.strip().splitlines()) if out.strip() else 0
+    except Exception:
+        return 0
+
+def get_disk():
+    try:
+        sz = subprocess.check_output(["du", "-sb", str(HOME / ".config/vivaldi")], text=True)
+        return int(sz.split()[0]) / 1024 / 1024
+    except Exception:
+        return 0
+
+def get_bookmark_count():
+    try:
+        if not BOOKMARKS.exists(): return 0, 0
+        data = json.loads(BOOKMARKS.read_text())
+        urls, folders = [0], [0]
+        def walk(n):
+            if n.get("type") == "url": urls[0] += 1
+            elif n.get("type") == "folder": folders[0] += 1
+            for c in n.get("children", []): walk(c)
+        for r in data.get("roots", {}).values(): walk(r)
+        return urls[0], folders[0]
+    except Exception:
+        return 0, 0
+
+def progress_bar(current, total, width=30, color="green"):
+    pct = min(current / total, 1) if total else 0
+    filled = int(pct * width)
+    bar = "█" * filled + "░" * (width - filled)
+    return f"[{color}]{bar}[/{color}] {pct*100:5.1f}%"
+
+def make_dashboard():
+    procs, vivaldi_ram, vivaldi_cpu = get_vivaldi_processes()
+    sys_used, sys_total = get_system_mem()
+    tabs = get_tabs_count()
+    disk_mb = get_disk()
+    bm_urls, bm_folders = get_bookmark_count()
+
+    layout = Layout()
+    layout.split_column(
+        Layout(name="header", size=3),
+        Layout(name="body"),
+        Layout(name="footer", size=3),
+    )
+    layout["body"].split_row(
+        Layout(name="left", ratio=2),
+        Layout(name="right", ratio=3),
+    )
+
+    # ── HEADER ──
+    title = Text()
+    title.append("🚀 ", style="")
+    title.append("Vivaldi Cockpit", style="bold magenta")
+    title.append(" — Adil's Real-Time Monitor", style="dim")
+    title.append(f"  ·  {datetime.now().strftime('%H:%M:%S')}", style="cyan")
+    layout["header"].update(Panel(Align.center(title), border_style="magenta"))
+
+    # ── LEFT: System metrics ──
+    metrics = Table.grid(padding=(0, 1))
+    metrics.add_column(style="cyan", width=12)
+    metrics.add_column()
+
+    metrics.add_row("System RAM:",
+        f"{progress_bar(sys_used, sys_total, color='blue')} {sys_used:.1f}/{sys_total:.1f} GB")
+    if procs:
+        vivaldi_pct = (vivaldi_ram / 1024) / sys_total * 100 if sys_total else 0
+        metrics.add_row("Vivaldi RAM:",
+            f"{progress_bar(vivaldi_ram/1024, sys_total, color='green')} {vivaldi_ram/1024:.1f} GB ({vivaldi_pct:.1f}%)")
+        metrics.add_row("Vivaldi CPU:",
+            f"{progress_bar(vivaldi_cpu, 100, color='yellow')} {vivaldi_cpu:.1f}%")
+    metrics.add_row("Disk:", f"[bright_blue]{disk_mb:.0f} MB[/bright_blue]")
+    metrics.add_row("", "")
+    metrics.add_row("Proseslər:", f"[white]{len(procs)}[/white]")
+    metrics.add_row("Tablar:", f"[white]{tabs}[/white]")
+    metrics.add_row("Bookmark:", f"[white]{bm_urls} URL, {bm_folders} folder[/white]")
+
+    if not procs:
+        metrics.add_row("", "")
+        metrics.add_row("Status:", "[bold red]❌ Vivaldi qapalıdır[/bold red]")
+        metrics.add_row("Başlat:", "[dim]vc start[/dim]")
+    else:
+        metrics.add_row("", "")
+        metrics.add_row("Status:", "[bold green]✅ Aktiv[/bold green]")
+
+    layout["left"].update(Panel(metrics, title="📊 Metrics", border_style="blue"))
+
+    # ── RIGHT: Top processes by RAM ──
+    proc_table = Table(show_header=True, header_style="bold magenta", expand=True)
+    proc_table.add_column("PID", style="dim", width=7)
+    proc_table.add_column("RAM (MB)", style="green", justify="right", width=10)
+    proc_table.add_column("CPU %", style="yellow", justify="right", width=6)
+    proc_table.add_column("Type", style="cyan")
+
+    sorted_procs = sorted(procs, key=lambda p: -p[1])[:12]
+    for pid, rss, cpu, comm, args in sorted_procs:
+        if "--type=" in args:
+            ptype = args.split("--type=")[1].split()[0][:20]
+        else:
+            ptype = "main"
+        proc_table.add_row(str(pid), f"{rss:.0f}", f"{cpu:.1f}", ptype)
+
+    layout["right"].update(Panel(proc_table, title="💾 Top 12 Process by RAM", border_style="green"))
+
+    # ── FOOTER ──
+    foot = Text()
+    foot.append("[q]", style="bold yellow"); foot.append(" çıxış  ", style="dim")
+    foot.append("[Ctrl+C]", style="bold yellow"); foot.append(" stop  ", style="dim")
+    foot.append("Refresh: 2s", style="cyan")
+    layout["footer"].update(Panel(Align.center(foot), border_style="dim"))
+
+    return layout
+
+def main():
+    console.clear()
+    try:
+        with Live(make_dashboard(), refresh_per_second=0.5, screen=True) as live:
+            while True:
+                time.sleep(2)
+                live.update(make_dashboard())
+    except KeyboardInterrupt:
+        console.print("\n[dim]👋 Cockpit dayandırıldı[/dim]")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,151 @@
+#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+"""
+vc-find — Universal axtarış: Bookmarks + Notes + History + Open Tabs
+Sadə token-based + fuzzy ranking. Heç bir embedding lazım deyil.
+İstifadə: vc-find "matrix client e2ee dart"
+"""
+import sys
+import json
+import sqlite3
+import argparse
+import re
+from pathlib import Path
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+
+console = Console()
+HOME = Path.home()
+BOOKMARKS = HOME / ".config/vivaldi/Default/Bookmarks"
+HISTORY = HOME / ".config/vivaldi/Default/History"
+NOTES = HOME / ".config/vivaldi/Default/Notes"
+
+def tokenize(text):
+    return [t.lower() for t in re.findall(r'\w+', text or '') if len(t) > 1]
+
+def score(query_tokens, target_text):
+    """Simple BM25-ish: token coverage + bonus for prefix match."""
+    target_tokens = set(tokenize(target_text))
+    if not target_tokens: return 0
+    matched = sum(1 for qt in query_tokens
+                  if any(tt.startswith(qt) or qt in tt for tt in target_tokens))
+    if not matched: return 0
+    coverage = matched / len(query_tokens)
+    bonus = 1.5 if any(qt in (target_text or "").lower() for qt in query_tokens) else 1
+    return coverage * bonus * 100
+
+def search_bookmarks(query_tokens):
+    if not BOOKMARKS.exists(): return []
+    data = json.loads(BOOKMARKS.read_text())
+    results = []
+
+    def walk(node, path=""):
+        if node.get("type") == "url":
+            text = f"{node.get('name','')} {node.get('url','')}"
+            s = score(query_tokens, text)
+            if s > 0:
+                results.append((s, "📑 Bookmark", node.get("name","?"),
+                                node.get("url",""), path))
+        elif node.get("type") == "folder":
+            new_path = f"{path}/{node.get('name','?')}" if path else node.get('name','?')
+            for c in node.get("children", []): walk(c, new_path)
+        for c in node.get("children", []):
+            if node.get("type") not in ("folder", "url"): walk(c, path)
+        if "roots" in node:
+            for r in node["roots"].values(): walk(r, "")
+
+    walk(data)
+    return results
+
+def search_history(query_tokens, limit=2000):
+    if not HISTORY.exists(): return []
+    results = []
+    try:
+        # Use temp copy (Vivaldi may lock)
+        import shutil, tempfile
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
+            shutil.copy(HISTORY, tmp.name)
+            conn = sqlite3.connect(f"file:{tmp.name}?mode=ro", uri=True)
+            cur = conn.cursor()
+            cur.execute(f"SELECT title, url, last_visit_time FROM urls ORDER BY last_visit_time DESC LIMIT {limit}")
+            for title, url, _ in cur.fetchall():
+                text = f"{title or ''} {url or ''}"
+                s = score(query_tokens, text)
+                if s > 0:
+                    results.append((s * 0.8, "🕘 History", title or "(no title)", url, ""))
+            conn.close()
+            Path(tmp.name).unlink(missing_ok=True)
+    except Exception as e:
+        console.print(f"[dim]History oxunmur: {e}[/dim]")
+    return results
+
+def search_notes(query_tokens):
+    if not NOTES.exists(): return []
+    results = []
+    try:
+        data = json.loads(NOTES.read_text())
+        for n in data.get("children", []):
+            if n.get("type") != "note": continue
+            subj = n.get("subject", "")
+            content = n.get("content", "")
+            text = f"{subj} {content}"
+            s = score(query_tokens, text)
+            if s > 0:
+                preview = content[:100].replace("\n", " ") + "..."
+                results.append((s * 1.2, "📝 Note", subj, preview, ""))
+    except Exception:
+        pass
+    return results
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("query", nargs="+")
+    parser.add_argument("-l", "--limit", type=int, default=20)
+    parser.add_argument("--no-history", action="store_true")
+    parser.add_argument("--only", choices=["bookmarks", "history", "notes"])
+    args = parser.parse_args()
+
+    query = " ".join(args.query)
+    tokens = tokenize(query)
+    if not tokens:
+        console.print("[red]✗ Sorğu boşdur[/red]")
+        sys.exit(1)
+
+    console.print(Panel(f"🔍 [bold]{query}[/bold]  →  {len(tokens)} açar söz",
+                        border_style="cyan"))
+
+    all_results = []
+    if args.only != "history" and not args.only:
+        all_results += search_bookmarks(tokens)
+    elif args.only == "bookmarks":
+        all_results += search_bookmarks(tokens)
+    if args.only != "bookmarks" and not args.no_history and (not args.only or args.only == "history"):
+        all_results += search_history(tokens)
+    if not args.only or args.only == "notes":
+        all_results += search_notes(tokens)
+
+    all_results.sort(key=lambda r: -r[0])
+    all_results = all_results[:args.limit]
+
+    if not all_results:
+        console.print("[yellow]✗ Heç bir nəticə tapılmadı[/yellow]")
+        return
+
+    table = Table(show_header=True, header_style="bold magenta", expand=True)
+    table.add_column("Score", style="dim", width=5, justify="right")
+    table.add_column("Mənbə", width=12)
+    table.add_column("Ad / Mövzu", style="cyan")
+    table.add_column("URL / Preview", style="white")
+    table.add_column("Yer", style="dim")
+
+    for s, source, name, url, path in all_results:
+        table.add_row(f"{s:.0f}", source,
+                      (name or "")[:50],
+                      (url or "")[:60],
+                      (path or "")[:25])
+
+    console.print(table)
+    console.print(f"\n[dim]Toplam: {len(all_results)} nəticə (top {args.limit})[/dim]")
+
+if __name__ == "__main__":
+    main()

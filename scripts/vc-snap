@@ -1,0 +1,146 @@
+#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+"""vc-snap — Vivaldi workspace snapshot save/restore."""
+import sys
+import json
+import shutil
+import subprocess
+import sqlite3
+from pathlib import Path
+from datetime import datetime
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
+HOME = Path.home()
+SNAP_DIR = HOME / ".config/vivaldi-snapshots"
+SNAP_DIR.mkdir(exist_ok=True)
+HISTORY = HOME / ".config/vivaldi/Default/History"
+BOOKMARKS = HOME / ".config/vivaldi/Default/Bookmarks"
+
+def get_recent_urls(limit=30):
+    """History-dən son visit edilən URL-ləri oxu (Vivaldi açıq olsa belə)."""
+    if not HISTORY.exists(): return []
+    try:
+        tmp = "/tmp/vc-snap-hist.db"
+        shutil.copy(HISTORY, tmp)
+        conn = sqlite3.connect(f"file:{tmp}?mode=ro", uri=True)
+        cur = conn.cursor()
+        cur.execute("""SELECT u.url, u.title, v.visit_time FROM urls u
+                       JOIN visits v ON u.id = v.url
+                       ORDER BY v.visit_time DESC LIMIT ?""", (limit,))
+        results = [{"url": r[0], "title": r[1] or ""} for r in cur.fetchall()]
+        conn.close()
+        Path(tmp).unlink(missing_ok=True)
+        return results
+    except Exception as e:
+        console.print(f"[red]History xətası: {e}[/red]")
+        return []
+
+def cmd_save(name):
+    if not name: name = f"snap-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    name = name.replace("/", "-")
+
+    tabs = get_recent_urls(30)
+    snap = {
+        "name": name,
+        "created": datetime.now().isoformat(),
+        "tabs": tabs,
+        "tab_count": len(tabs)
+    }
+
+    snap_file = SNAP_DIR / f"{name}.json"
+    snap_file.write_text(json.dumps(snap, ensure_ascii=False, indent=2))
+
+    # Bookmarks backup
+    if BOOKMARKS.exists():
+        shutil.copy(BOOKMARKS, SNAP_DIR / f"{name}-bookmarks.json")
+
+    console.print(f"💾 [green]Snapshot:[/green] {name}")
+    console.print(f"   • {len(tabs)} tab URL")
+    console.print(f"   • Bookmark backup: {name}-bookmarks.json")
+
+def cmd_list():
+    snaps = sorted(SNAP_DIR.glob("*.json"))
+    snaps = [f for f in snaps if "-bookmarks" not in f.name and "-tabs" not in f.name]
+
+    if not snaps:
+        console.print("[yellow]Snapshot yoxdur[/yellow]")
+        return
+
+    table = Table(show_header=True, header_style="bold magenta", expand=True)
+    table.add_column("Ad", style="cyan")
+    table.add_column("Tab", style="green", justify="right")
+    table.add_column("Yaranma", style="dim")
+    table.add_column("Ölçü", style="yellow", justify="right")
+
+    for f in snaps:
+        try:
+            d = json.loads(f.read_text())
+            size_kb = f.stat().st_size / 1024
+            table.add_row(d.get("name", f.stem),
+                          str(d.get("tab_count", 0)),
+                          d.get("created", "")[:16],
+                          f"{size_kb:.1f} KB")
+        except Exception: pass
+    console.print(table)
+
+def cmd_load(name):
+    snap_file = SNAP_DIR / f"{name}.json"
+    if not snap_file.exists():
+        console.print(f"[red]✗ Snapshot tapılmadı: {name}[/red]")
+        return
+
+    snap = json.loads(snap_file.read_text())
+    tabs = snap.get("tabs", [])
+
+    if not tabs:
+        console.print("[yellow]Heç bir tab yoxdur[/yellow]")
+        return
+
+    urls = [t["url"] for t in tabs if t.get("url")]
+    console.print(f"📂 [green]Bərpa:[/green] {name} ({len(urls)} tab)")
+
+    # Open all in new window
+    if urls:
+        subprocess.Popen(["vivaldi", "--new-window"] + urls)
+        console.print(f"✓ Vivaldi-də yeni pəncərədə açıldı")
+
+def cmd_delete(name):
+    snap_file = SNAP_DIR / f"{name}.json"
+    bm_file = SNAP_DIR / f"{name}-bookmarks.json"
+    deleted = 0
+    for f in (snap_file, bm_file):
+        if f.exists():
+            f.unlink()
+            deleted += 1
+    console.print(f"🗑️  [red]{deleted} fayl silindi[/red]: {name}")
+
+def cmd_show(name):
+    snap_file = SNAP_DIR / f"{name}.json"
+    if not snap_file.exists():
+        console.print(f"[red]✗ Tapılmadı: {name}[/red]")
+        return
+    snap = json.loads(snap_file.read_text())
+    console.print(f"[bold]{snap['name']}[/bold] · {snap['created']}")
+    console.print(f"[dim]{len(snap.get('tabs', []))} tab[/dim]\n")
+    for i, t in enumerate(snap.get("tabs", [])[:30], 1):
+        console.print(f"  {i:2d}. [cyan]{t.get('title','(no title)')[:60]}[/cyan]")
+        console.print(f"      [dim]{t.get('url','')[:80]}[/dim]")
+
+def main():
+    if len(sys.argv) < 2:
+        console.print("vc-snap save <name> | list | load <name> | show <name> | delete <name>")
+        return
+
+    cmd = sys.argv[1]
+    arg = sys.argv[2] if len(sys.argv) > 2 else ""
+
+    if cmd in ("save", "s"): cmd_save(arg)
+    elif cmd in ("list", "l", "ls"): cmd_list()
+    elif cmd in ("load", "restore", "r"): cmd_load(arg)
+    elif cmd in ("delete", "rm", "d"): cmd_delete(arg)
+    elif cmd in ("show", "view", "cat"): cmd_show(arg)
+    else: console.print(f"[red]Bilinməyən: {cmd}[/red]")
+
+if __name__ == "__main__":
+    main()
