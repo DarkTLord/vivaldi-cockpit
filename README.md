@@ -5,7 +5,29 @@
 
 ![Catppuccin](https://img.shields.io/badge/Theme-Catppuccin%20Mocha-cba6f7?style=flat-square)
 ![Vivaldi](https://img.shields.io/badge/Vivaldi-7.9-ef3939?style=flat-square)
+![Local AI](https://img.shields.io/badge/AI-Ollama%20Local-a6e3a1?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-89b4fa?style=flat-square)
+
+---
+
+## 📸 Screenshots
+
+### 🏠 Custom New Tab Dashboard
+*Catppuccin Mocha · saata görə salamlama · live Bakı havası · HN top 5 · AZ atalar sözü · AI prompt günün*
+
+![Custom Dashboard](docs/screenshots/01-custom-dashboard.png)
+
+### 🌐 vc-server Web Cockpit (localhost:8001)
+*FastAPI + WebSocket · live metrics · universal search · AI chat · focus mode · workspace snapshots*
+
+![Cockpit Server](docs/screenshots/02-cockpit-server.png)
+
+### 🖥️ Vivaldi Desktop View
+*10 workspaces · 390 bookmarks · 13 sidebar panels · Catppuccin Mocha theme*
+
+![Vivaldi Active](docs/screenshots/03-vivaldi-active.png)
+
+---
 
 ## ✨ Highlights
 
