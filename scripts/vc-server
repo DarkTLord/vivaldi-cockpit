@@ -56,7 +56,7 @@ pre{background:var(--surface0);padding:12px;border-radius:8px;overflow-x:auto;fo
 </head><body>
 <div class="container">
 <h1>🚀 Vivaldi Cockpit Server</h1>
-<p class="sub"><span class="live-dot"></span>Real-time monitoring · Adil's Power Dashboard</p>
+<p class="sub"><span class="live-dot"></span>Real-time monitoring · your Power Dashboard</p>
 <div class="grid">
 
 <div class="card"><h2>📊 Live Metrics</h2><div id="metrics">Yüklənir...</div></div>
@@ -93,7 +93,7 @@ pre{background:var(--surface0);padding:12px;border-radius:8px;overflow-x:auto;fo
 </div>
 
 <div class="card"><h2>📂 Workspace Snapshots</h2>
-<input id="snapName" placeholder="Snapshot adı (məs: tarxen-debug)">
+<input id="snapName" placeholder="Snapshot adı (məs: project-a-debug)">
 <div class="btn-row" style="margin-top:8px">
 <a class="btn" onclick="snapSave()">💾 Saxla</a>
 <a class="btn" onclick="snapList()">📋 Siyahı</a>

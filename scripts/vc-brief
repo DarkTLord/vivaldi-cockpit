@@ -51,7 +51,7 @@ def github_pulse():
 def ollama_summary(model="mistral:7b"):
     """AI cəhdi günün yekun xülasəsi yaratmaq."""
     hn = hn_top(3)
-    prompt = f"""Adil üçün Azərbaycan dilində qısa daily briefing yaz (3-4 cümlə).
+    prompt = f"""User üçün Azərbaycan dilində qısa daily briefing yaz (3-4 cümlə).
 Bu məlumatlardan istifadə et:
 
 Hacker News top 3:
@@ -81,7 +81,7 @@ def main():
     else: greet = "🌃 Gecən xeyir"
 
     sections = []
-    sections.append(f"# {greet} Adil")
+    sections.append(f"# {greet} User")
     sections.append(f"\n**{now.strftime('%A, %d %B %Y · %H:%M')}** · Bakı: {weather()}\n")
     sections.append(f"## 📜 Günün atalar sözü\n> _{proverb()}_\n")
     sections.append(f"## 📰 Hacker News Top 3\n{hn_top(3)}\n")

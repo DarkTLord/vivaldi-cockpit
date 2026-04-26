@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════════════╗
-# ║  vc — Vivaldi CLI (interaktiv) · Adil 2026                   ║
+# ║  vc — Vivaldi CLI (interaktiv) · User 2026                   ║
 # ║  İstifadə: 'vc' yaz, ox düymələri + Enter ilə seç            ║
 # ╚══════════════════════════════════════════════════════════════╝
 set -euo pipefail
 
 # ── Configuration ─────────────────────────────────────────────────
-DASHBOARD="file:///home/blackarch/.vivaldi-dashboard/index.html"
+DASHBOARD="file://$HOME/.vivaldi-dashboard/index.html"
 BOOKMARKS="$HOME/.config/vivaldi/Default/Bookmarks"
 PREFS="$HOME/.config/vivaldi/Default/Preferences"
 NOTES="$HOME/.config/vivaldi/Default/Notes"
@@ -155,7 +155,7 @@ f_health() {
 }
 
 f_ext() {
-  v_open "file:///home/blackarch/vivaldi-extensions-install.html"
+  v_open "file://$HOME/vivaldi-extensions-install.html"
   echo "🔌 Extension installer açıldı"
 }
 
@@ -185,7 +185,7 @@ f_chained() {
 
 # ── Main interactive menu ────────────────────────────────────────
 f_menu() {
-  local choice=$(cat <<EOF | fzf "${FZF_OPTS[@]}" --header="🚀 Vivaldi CLI — Adil's Cockpit (Esc — çıxış)" --prompt="Menyu ❯ "
+  local choice=$(cat <<EOF | fzf "${FZF_OPTS[@]}" --header="🚀 Vivaldi CLI — your Cockpit (Esc — çıxış)" --prompt="Menyu ❯ "
 🏠 dash         · Dashboard aç (yeni tab)
 🤖 ai           · AI Triple (Claude + GPT + Perplexity)
 🌟 aiquintet    · 5 AI birdən (+ Gemini + DeepSeek)

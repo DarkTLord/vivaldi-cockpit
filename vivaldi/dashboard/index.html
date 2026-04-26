@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Adil's Cockpit</title>
+<title>My Cockpit</title>
 <style>
 :root{--base:#1e1e2e;--mantle:#181825;--crust:#11111b;--surface0:#313244;--surface1:#45475a;--surface2:#585b70;--text:#cdd6f4;--subtext:#a6adc8;--overlay:#6c7086;--pink:#f5c2e7;--mauve:#cba6f7;--red:#f38ba8;--peach:#fab387;--yellow:#f9e2af;--green:#a6e3a1;--teal:#94e2d5;--sky:#89dceb;--sapphire:#74c7ec;--blue:#89b4fa;--lavender:#b4befe}
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter','SF Pro Display',system-ui,sans-serif}
@@ -61,7 +61,7 @@ body{background:var(--base);color:var(--text);min-height:100vh;overflow-x:hidden
 <body>
 <div class="container">
 <div class="hero">
-<div class="greeting"><h1 id="greeting">Salam Adil</h1><p id="subgreeting">Bu gün nə yaratacağıq?</p></div>
+<div class="greeting"><h1 id="greeting">Welcome back</h1><p id="subgreeting">Bu gün nə yaratacağıq?</p></div>
 <div class="clock"><div class="time" id="time">--:--</div><div class="date" id="date">—</div><div class="weather" id="weather">Hava yüklənir...</div></div>
 </div>
 <div class="search-bar">
@@ -112,7 +112,7 @@ body{background:var(--base);color:var(--text);min-height:100vh;overflow-x:hidden
 <div class="stat"><div class="value">42</div><div class="label">Shortcut</div></div>
 <div class="stat"><div class="value">15</div><div class="label">Extension</div></div>
 </div>
-<div class="footer">Vivaldi 7.9 + Catppuccin Mocha · Setup by Adil · 2026<br><a href="file:///home/blackarch/vivaldi-tam-bele.md">📖 Tam Setup Bələdçisi</a></div>
+<div class="footer">Vivaldi 7.9 + Catppuccin Mocha · Setup by User · 2026<br><a href="https://github.com/DarkTLord/vivaldi-cockpit">📖 GitHub Repo</a></div>
 </div>
 <script>
 const $ = id => document.getElementById(id);
@@ -129,12 +129,12 @@ tick(); setInterval(tick, 30000);
 
 // ═══ GREETING ═══
 const h = new Date().getHours();
-let g='Salam Adil', sg='Bu gün nə yaratacağıq?';
-if(h<6){g='Gecə yarısı, Adil';sg='Hələ də işləyirik?';}
-else if(h<12){g='Sabahın xeyir, Adil';sg='Bu gün nə yaratacağıq?';}
-else if(h<17){g='Salam Adil';sg='Günortan xeyirli olsun';}
-else if(h<22){g='Axşamın xeyir, Adil';sg='Necə getdi günün?';}
-else{g='Gecən xeyir, Adil';sg='İstirahət vaxtı yaxınlaşır';}
+let g='Welcome back', sg='Bu gün nə yaratacağıq?';
+if(h<6){g='Late night';sg='Hələ də işləyirik?';}
+else if(h<12){g='Good morning';sg='Bu gün nə yaratacağıq?';}
+else if(h<17){g='Welcome back';sg='Günortan xeyirli olsun';}
+else if(h<22){g='Good evening';sg='Necə getdi günün?';}
+else{g='Good night';sg='İstirahət vaxtı yaxınlaşır';}
 $('greeting').textContent = g;
 $('subgreeting').textContent = sg;
 

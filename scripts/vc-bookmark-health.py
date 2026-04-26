@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Vivaldi Bookmark Health Check — Adil's tool.
+Vivaldi Bookmark Health Check — your tool.
 Skan: ölü linklər, duplicate, kategoriyasız bookmarks.
 İstifadə: vc health
 """
@@ -82,7 +82,7 @@ def main():
     bookmarks = collect_bookmarks(data)
 
     print(f"{C.BOLD}{C.PURPLE}╔══════════════════════════════════════════════════╗{C.RESET}")
-    print(f"{C.BOLD}{C.PURPLE}║  Vivaldi Bookmark Health Check — Adil           ║{C.RESET}")
+    print(f"{C.BOLD}{C.PURPLE}║  Vivaldi Bookmark Health Check — User           ║{C.RESET}")
     print(f"{C.BOLD}{C.PURPLE}╚══════════════════════════════════════════════════╝{C.RESET}")
     print()
     print(f"📑 Cəmi bookmark: {C.CYAN}{len(bookmarks)}{C.RESET}")

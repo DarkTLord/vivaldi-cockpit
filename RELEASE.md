@@ -1,87 +1,87 @@
 # 🚀 Vivaldi Cockpit v1.0 — Release Notes
 
-> **Released:** 2026-04-26 · **Author:** Adil ([@DarkTLord](https://github.com/DarkTLord))
-> **Stack:** Garuda Linux + Vivaldi 7.9 + Catppuccin Mocha + Local AI
+> **Released:** 2026-04-26 · **Maintainer:** [@DarkTLord](https://github.com/DarkTLord)
+> **Stack:** Linux + Vivaldi 7.9 + Catppuccin Mocha + Local AI
 
 ---
 
-## 🎯 Nədir?
+## 🎯 What is it?
 
-**Vivaldi Cockpit** dünyada birə-bir browser power-user setup-ıdır. Catppuccin
-Mocha rəng paleti, Azərbaycan dili UI, lokal AI inteqrasiyası, səs idarəsi və
-14 fərqli CLI alətindən ibarət vahid command center.
+**Vivaldi Cockpit** is a one-of-a-kind browser power-user setup. Catppuccin
+Mocha palette, optional Azerbaijani UI, local AI integration, voice control,
+and a unified command center built from 14 distinct CLI tools.
 
-Bu sadəcə bir tema deyil — **tam ekosistem**: web dashboard, AI kateqoriyalaşdırma,
-GPG-şifrəli notes, otomatik həftəlik raportlar, Pomodoro fokus modu, və yerli
-Whisper modeli ilə səs komandaları.
+This isn't just a theme — it's a **complete ecosystem**: web dashboard, AI
+categorization, GPG-encrypted notes, automated weekly reports, Pomodoro focus
+mode, and voice commands powered by a local Whisper model.
 
 ---
 
 ## ⭐ Highlights
 
 ### 🎨 Visual Identity
-- **17 custom CSS mod** — Catppuccin Mocha + glassmorphism + animasiyalar
-- **3 theme variant** (Mocha / Macchiato / Frappé)
-- **Custom HTML dashboard** — saata görə salamlama, Bakı havası,
-  HN top 5, AZ atalar sözü, AI prompt günün, GitHub Pulse widget
+- **17 custom CSS mods** — Catppuccin Mocha + glassmorphism + animations
+- **3 theme variants** (Mocha / Macchiato / Frappé)
+- **Custom HTML dashboard** — time-based greeting, live weather,
+  HN top 5, daily proverbs, AI prompt of the day, GitHub Pulse widget
 
-### 🇦🇿 Native Azerbaijani
-- Tam UI Azərbaycan dilində (`az.pak`)
-- 6 hazır AZ-dilli note (Power-User Cheatsheet, Prompt Library, Linux Snippets, Security)
-- 18 atalar sözü dashboard-da
-- Voice komandalar AZ + EN avtomat tanıma
+### 🌐 i18n Support
+- Optional Azerbaijani UI (`az.pak`)
+- 6 native AZ-language note presets (Power-User Cheatsheet, Prompt Library, Linux Snippets, Security)
+- 18 daily proverbs in dashboard
+- Voice commands auto-detect EN + AZ
 
 ### 🤖 Local AI Stack
-- **Ollama 9 model** quraşdırılı (deepseek-r1, qwen3-coder, mistral, custom targen-*)
-- **vc-ask** — terminal-da AI conversation
-- **vc-brief** — hər səhər AI daily briefing
-- **vc-categorize** — bookmark-ları AI ilə təsnif
+- **Ollama** integration (any installed model)
+- **vc-ask** — terminal AI conversation with streaming markdown
+- **vc-brief** — daily AI briefing every morning
+- **vc-categorize** — bookmark auto-categorization
 - **Voice control** — openai-whisper local + ffmpeg
 
-### 🛠️ 14 CLI Tool
-| Tool | Məqsəd |
-|------|--------|
-| `vc` | İnteraktiv fzf menyu (30 seçim) |
+### 🛠️ 14 CLI Tools
+| Tool | Purpose |
+|------|---------|
+| `vc` | Interactive fzf menu (30+ options) |
 | `vc-ask` | Local AI chat (Ollama, streaming markdown) |
-| `vc-cockpit` | btop-stili real-time monitor |
+| `vc-cockpit` | btop-style real-time monitor |
 | `vc-find` | Universal search (BM + History + Notes) |
-| `vc-voice` | Səslə browser idarəsi (4 engine) |
+| `vc-voice` | Voice control (4 engine fallback) |
 | `vc-server` | FastAPI web dashboard (localhost:8001) |
 | `vc-brief` | AI daily briefing |
 | `vc-snap` | Workspace snapshot save/restore |
-| `vc-focus` | Pomodoro + statistika |
-| `vc-weekly` | Həftəlik raport (Markdown + PDF) |
-| `vc-categorize` | AI bookmark təsnifatı |
-| `vc-share` | GitHub dotfiles |
+| `vc-focus` | Pomodoro + statistics |
+| `vc-weekly` | Weekly report (Markdown + PDF) |
+| `vc-categorize` | AI bookmark categorization |
+| `vc-share` | GitHub dotfiles helper |
 | `vc-note-crypt` | GPG note encryption |
-| `vc-bookmark-health.py` | Network bookmark validation |
+| `vc-bookmark-health.py` | Parallel network bookmark validation |
 
 ### 🗂️ Workspaces & Bookmarks
-- **10 emoji workspace**: 💻 Dev, 🤖 AI Lab, 🛡️ Security, 📚 Research,
+- **10 emoji workspaces**: 💻 Dev, 🤖 AI Lab, 🛡️ Security, 📚 Research,
   🎨 Design, 📰 Pulse, 🧠 Brain, 💬 Social, 🎬 Lounge, 💰 Life
-- **390 bookmark URL** — 84 folder daxilində
-- **29 RSS feed** — 6 kateqoriya (Tech/Linux/Security/AI/WebDev/Flutter)
-- **17 search shortcut** (g, gh, c7, npm, pub, aur, cve, hf...)
+- **390 sample URLs** across 84 folders
+- **29 RSS feeds** — 6 categories (Tech/Linux/Security/AI/WebDev/Flutter)
+- **17 search shortcuts** (g, gh, c7, npm, pub, aur, cve, hf...)
 
 ### 🔐 Privacy & Security
-- **NSA-tier hardening** — 20+ privacy setting
-- **DNS-over-HTTPS** Cloudflare 1.1.1.1
-- **HTTPS-only mode** + WebRTC IP leak qoruması
-- **GPG ed25519** açar notes encryption üçün
+- **Hardened defaults** — 20+ privacy settings
+- **DNS-over-HTTPS** (Cloudflare 1.1.1.1)
+- **HTTPS-only mode** + WebRTC IP leak protection
+- **GPG ed25519** key for note encryption
 - **Tracker prevention level 3** (Maximum)
 
-### 🎮 Control Modes (3)
-1. **Klaviatura** — 54 shortcut + F-key stream deck
-2. **Mouse** — 15 gesture + rocker gestures
-3. **Voice** — local Whisper, AZ + EN
+### 🎮 Three Control Modes
+1. **Keyboard** — 54 shortcuts + F-key stream deck
+2. **Mouse** — 15 gestures + rocker gestures
+3. **Voice** — local Whisper transcription, EN + AZ
 
 ### ⚡ Automation
-- **systemd timer** weekly bookmark health (bazar 03:00)
-- **systemd timer** daily AI brief (hər səhər 08:00)
-- **Auto categorize watcher** (qwen3-coder bitincə apply)
+- **systemd timer** weekly bookmark health (Sun 03:00)
+- **systemd timer** daily AI brief (every morning 08:00)
+- **Auto-categorize watcher** (runs after qwen3-coder finishes)
 
 ### 🌐 Web Dashboard
-**vc-server** localhost:8001-də FastAPI server:
+**vc-server** at localhost:8001 (FastAPI):
 - Live WebSocket metrics
 - Universal search
 - AI chat web interface
@@ -91,40 +91,40 @@ Whisper modeli ilə səs komandaları.
 - Daily brief generator
 - Bookmark health stats
 
-Vivaldi-də sidebar web panel kimi əlavə olunur — daimi açıq.
+Add as a sidebar web panel in Vivaldi for always-on access.
 
 ---
 
-## 📐 Arxitektura
+## 📐 Architecture
 
 ```
-~/.config/vivaldi/User/custom.css         # 17 UI mod
-~/.config/vivaldi/Default/Preferences     # 10 workspace, 17 search
-~/.config/vivaldi/Default/Bookmarks       # 390 URL
+~/.config/vivaldi/User/custom.css         # 17 UI mods
+~/.config/vivaldi/Default/Preferences     # workspaces, search shortcuts
+~/.config/vivaldi/Default/Bookmarks       # sample bookmarks
 ~/.vivaldi-dashboard/index.html            # Custom new tab page
 
-~/.local/bin/vc*                           # 14 CLI tool
+~/.local/bin/vc*                           # 14 CLI tools
 ~/.local/venvs/vc/                         # Python deps
-~/.config/systemd/user/vivaldi-*.timer     # 2 auto timer
+~/.config/systemd/user/vivaldi-*.timer     # 2 auto timers
 ~/.cache/vc-*/                             # State files
 ~/Documents/vivaldi-{briefs,reports,health}/  # Auto outputs
 ```
 
 ---
 
-## 🚀 İlk Sınaq (5 dəq)
+## 🚀 First Run (5 min)
 
 ```bash
-# Yeni terminal aç → welcome banner görəcəksən
-v                          # İnteraktiv menyu
-vweek                      # Həftəlik raport
+# Open new terminal → welcome banner appears
+v                          # Interactive menu
+vweek                      # Weekly report
 vbrief                     # AI brief
 vfocus 25                  # Pomodoro
 vc-server open             # Web dashboard
 ```
 
-Vivaldi-də:
-- `F2` → "AI Quintet" → 5 AI birdən
+In Vivaldi:
+- `F2` → "AI Quintet" → 5 AI tabs at once
 - `Ctrl+Alt+2` → AI Lab workspace
 - `F4` → sidebar (Cockpit Server panel)
 
@@ -132,43 +132,44 @@ Vivaldi-də:
 
 ## 📊 By the Numbers
 
-| Metrika | Dəyər |
-|---------|-------|
+| Metric | Value |
+|--------|-------|
 | Custom scripts | **14** |
 | Lines of code | **~3500** |
 | Languages | Bash, Python, JS, CSS, TOML |
 | Dependencies | rich, fastapi, uvicorn, weasyprint, openai-whisper |
 | Storage | **~250MB** (whisper model + venv) |
-| Setup time | **~3 saat** (Claude Opus 4.7 ilə) |
-| Backup points | **6** (rollback hazır) |
+| Setup time | **~3 hours** (with AI pair programming) |
 
 ---
 
 ## 🛣️ Roadmap
 
-- [ ] Vivaldi cloud sync inteqrasiyası
-- [ ] Multi-user dotfiles fork dəstəyi
-- [ ] Plasma 6 widget (Cockpit metric tray-də)
-- [ ] iOS Vivaldi mobile sync
+- [ ] Vivaldi cloud sync integration
+- [ ] Multi-user dotfiles fork support
+- [ ] Plasma 6 system tray widget (Cockpit metrics)
 - [ ] Public dashboard demo (read-only mode)
+- [ ] Plugin architecture for `vc-*` tools
+- [ ] More voice engines (Whisper.cpp native, Vosk fallback)
+- [ ] Tab state persistence (order, scroll positions)
 
 ---
 
 ## 🙏 Credits
 
-- **Catppuccin** — rəng paleti
-- **Vivaldi** — power-user browser
-- **Ollama** — local LLM platform
-- **OpenAI Whisper** — speech recognition
-- **FastAPI** — web framework
+- **[Catppuccin](https://catppuccin.com)** — color palette
+- **[Vivaldi](https://vivaldi.com)** — power-user browser
+- **[Ollama](https://ollama.com)** — local LLM platform
+- **[OpenAI Whisper](https://github.com/openai/whisper)** — speech recognition
+- **[FastAPI](https://fastapi.tiangolo.com)** — web framework
 - **Claude Opus 4.7** — pair programming partner
 
 ---
 
 ## 📜 License
 
-MIT © Adil (DarkTLord) · 2026
+MIT © DarkTLord · 2026
 
-Bu setup tam açıq mənbədir. Fork et, dəyişdir, daha əfsanə et.
+This setup is fully open source. Fork it, customize it, make it more legendary.
 
-> "Tək əldən səs çıxmaz" — Azərbaycan atalar sözü
+> "A single hand cannot make a sound" — proverb

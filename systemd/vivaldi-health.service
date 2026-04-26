@@ -1,5 +1,5 @@
 [Unit]
-Description=Vivaldi Bookmark Health Check (Adil)
+Description=Vivaldi Bookmark Health Check
 Wants=network-online.target
 After=network-online.target
 

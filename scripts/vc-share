@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  vc-share — Vivaldi setup-ı GitHub-da açıq paylaş             ║
-# ║  Adil-in 2026 setup-ını dotfiles repo-su kimi ictimailəşdir  ║
+# ║  your 2026 setup-ını dotfiles repo-su kimi ictimailəşdir  ║
 # ╚══════════════════════════════════════════════════════════════╝
 set -euo pipefail
 
 REPO_DIR="$HOME/vivaldi-cockpit-dotfiles"
 GH_USER="DarkTLord"
 REPO_NAME="vivaldi-cockpit"
-DESCRIPTION="🚀 Adil's legendary Vivaldi 2026 setup — Catppuccin + AZ language + 5 power tools (vc-ask, vc-cockpit, vc-find, vc-voice, vc-weekly)"
+DESCRIPTION="🚀 your legendary Vivaldi 2026 setup — Catppuccin + AZ language + 5 power tools (vc-ask, vc-cockpit, vc-find, vc-voice, vc-weekly)"
 
 cmd="${1:-help}"
 
@@ -44,7 +44,7 @@ case "$cmd" in
 
     # README
     cat > README.md << 'README_EOF'
-# 🚀 Vivaldi Cockpit — Adil's Legendary 2026 Setup
+# 🚀 Vivaldi Cockpit — your Legendary 2026 Setup
 
 > **A complete browser power-user setup combining Vivaldi 7.9, Catppuccin Mocha,
 > Azerbaijani UI, local AI, voice control, and a custom CLI dashboard.**
@@ -121,7 +121,7 @@ The installer will:
 
 ## 📜 License
 
-MIT © Adil (DarkTLord) · 2026
+MIT © User (DarkTLord) · 2026
 
 ## 🤝 Contributing
 
@@ -179,7 +179,7 @@ GIT_EOF
     cat > LICENSE << 'LIC_EOF'
 MIT License
 
-Copyright (c) 2026 Adil (DarkTLord)
+Copyright (c) 2026 User (DarkTLord)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -208,7 +208,7 @@ LIC_EOF
     [ ! -d "$REPO_DIR/.git" ] && { echo "❌ Əvvəlcə: vc-share init"; exit 1; }
     cd "$REPO_DIR"
     git add -A
-    git -c user.name='Adil' -c user.email='academytural@gmail.com' commit -m "Initial commit: Vivaldi Cockpit 2026 setup" || true
+    git -c user.name='User' -c user.email='user@example.com' commit -m "Initial commit: Vivaldi Cockpit 2026 setup" || true
 
     # Repo varsa skip yaratmağı
     if ! gh repo view "$GH_USER/$REPO_NAME" >/dev/null 2>&1; then

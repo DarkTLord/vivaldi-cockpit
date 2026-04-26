@@ -31,7 +31,7 @@ git push origin feat/yeni-feature
 1. `scripts/vc-yenitool` yarat (bash/python)
 2. Shebang düzgün olmalıdır:
    - Bash: `#!/usr/bin/env bash`
-   - Python: `#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3`
+   - Python: `#!/usr/bin/env -S $HOME/.local/venvs/vc/bin/python3`
 3. `chmod +x scripts/vc-yenitool`
 4. `vc` menyusuna əlavə et (scripts/vc-də)
 5. `bash/vc-aliases.sh` + `fish/vc.fish`-ə alias əlavə et
@@ -75,7 +75,7 @@ echo "✗ xəta"       # red
 
 ### Python
 ```python
-#!/usr/bin/env -S /home/blackarch/.local/venvs/vc/bin/python3
+#!/usr/bin/env -S $HOME/.local/venvs/vc/bin/python3
 """Docstring qısa təsvir."""
 from rich.console import Console
 console = Console()

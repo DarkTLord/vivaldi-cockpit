@@ -124,7 +124,7 @@ def render_markdown():
     health = health_reports()
 
     lines = [
-        "# 📊 Vivaldi Həftəlik Hesabat — Adil",
+        "# 📊 Vivaldi Həftəlik Hesabat — User",
         "",
         f"**Tarix:** {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         f"**Sistem:** Garuda Linux + Vivaldi 7.9 + Catppuccin Mocha",

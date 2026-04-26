@@ -1,6 +1,6 @@
-# Vivaldi 2026 Legendary Setup — Adil's Power Configuration
+# Vivaldi 2026 Legendary Setup — User's Power Configuration
 
-> Generated 2026-04-26. Hardware: Garuda Linux + KDE. User: Adil (Tarxen + Axion projects).
+> Generated 2026-04-26. Hardware: Garuda Linux + KDE. User: User (Project A + Project B projects).
 
 ## Quick Index
 1. [Privacy Hardening](#privacy-hardening)
@@ -65,8 +65,8 @@ Tab bar → right-click → "Workspaces" → "New Workspace"
 
 | Workspace | Color | Content |
 |-----------|-------|---------|
-| 🟦 Tarxen | Blue | Tarxen GitHub, docs, Linear, deploy |
-| 🟪 Axion | Purple | Axion repo, Matrix docs, l10n, Crowdin |
+| 🟦 Project A | Blue | Project A GitHub, docs, Linear, deploy |
+| 🟪 Project B | Purple | Project B repo, Matrix docs, l10n, Crowdin |
 | 🟩 AI/Research | Green | Claude.ai, ChatGPT, Perplexity, Context7 |
 | 🟧 Personal | Orange | Email, banking, YouTube, social |
 | 🔴 Security | Red | BlackArch tools, exploit-db, CVE feed |

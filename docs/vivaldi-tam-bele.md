@@ -1,7 +1,7 @@
-# 🏆 Vivaldi 2026 — Adil-in Əfsanə Setup Bələdçisi
+# 🏆 Vivaldi 2026 — your Əfsanə Setup Bələdçisi
 
 > Tarix: 2026-04-26 · Sistem: Garuda Linux (BlackArch repo) · Vivaldi 7.9.3970.59
-> İstifadəçi: Adil · Layihələr: Tarxen + Axion
+> İstifadəçi: User · Layihələr: Project A + Project B
 
 ---
 
@@ -357,7 +357,7 @@ rm -rf ~/.openclaw
 
 ### İstifadə
 - Sider sidebar → tapşırıq yaz
-- Məs: *"Tarxen GitHub-da son 5 issue-u göstər"*
+- Məs: *"Project A GitHub-da son 5 issue-u göstər"*
 - Agent avtomatik tab açıb işləyir
 
 ---
@@ -467,4 +467,4 @@ Bu setup unikaldır:
 
 ---
 
-*Setup: Adil · Yardımçı: Claude Opus 4.7 · 2026-04-26*
+*Setup: User · Yardımçı: Claude Opus 4.7 · 2026-04-26*

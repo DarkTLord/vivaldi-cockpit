@@ -91,14 +91,19 @@ if [ -d "$HOME/.config/vivaldi" ] && [[ "$MODE" != "scripts" ]]; then
   echo -e "${G}✓${N} Backup: $BACKUP"
 fi
 
-# 1. Scripts
+# 1. Scripts (with shebang fix for current user's venv path)
 echo -e "${B}→${N} CLI scripts → ~/.local/bin/"
 mkdir -p ~/.local/bin
 SCRIPT_COUNT=0
 for f in "$REPO_DIR/scripts/"vc*; do
-  [ -f "$f" ] && install -m 755 "$f" ~/.local/bin/ && SCRIPT_COUNT=$((SCRIPT_COUNT+1))
+  if [ -f "$f" ]; then
+    # Replace hardcoded venv path in shebang with current user's $HOME
+    sed "s|/home/blackarch/\.local/venvs/vc|$HOME/.local/venvs/vc|g" "$f" > "$HOME/.local/bin/$(basename "$f")"
+    chmod 755 "$HOME/.local/bin/$(basename "$f")"
+    SCRIPT_COUNT=$((SCRIPT_COUNT+1))
+  fi
 done
-echo -e "${G}✓${N} $SCRIPT_COUNT scripts quraşdırıldı"
+echo -e "${G}✓${N} $SCRIPT_COUNT scripts installed"
 
 [[ "$MODE" == "scripts" ]] && {
   echo "$VERSION" > "$INSTALLED_VERSION_FILE"

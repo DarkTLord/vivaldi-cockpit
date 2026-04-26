@@ -110,7 +110,7 @@ def make_dashboard():
     title = Text()
     title.append("🚀 ", style="")
     title.append("Vivaldi Cockpit", style="bold magenta")
-    title.append(" — Adil's Real-Time Monitor", style="dim")
+    title.append(" — your Real-Time Monitor", style="dim")
     title.append(f"  ·  {datetime.now().strftime('%H:%M:%S')}", style="cyan")
     layout["header"].update(Panel(Align.center(title), border_style="magenta"))
 
