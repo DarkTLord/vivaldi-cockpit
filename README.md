@@ -73,10 +73,48 @@ vc-weekly --pdf # Generate report
 
 ## 🚀 Installation
 
+### One-line install (TÖVSİYƏ)
+
 ```bash
-git clone https://github.com/DarkTLord/vivaldi-cockpit.git
-cd vivaldi-cockpit
+curl -sL https://raw.githubusercontent.com/DarkTLord/vivaldi-cockpit/main/update.sh | bash
+```
+
+### Manual
+
+```bash
+git clone https://github.com/DarkTLord/vivaldi-cockpit.git ~/vivaldi-cockpit
+cd ~/vivaldi-cockpit
 ./install.sh
+```
+
+### Update / Upgrade
+
+```bash
+# Quick update (one-liner)
+curl -sL https://raw.githubusercontent.com/DarkTLord/vivaldi-cockpit/main/update.sh | bash
+
+# Manual
+cd ~/vivaldi-cockpit
+./install.sh --update
+```
+
+### Install modes
+
+| Komanda | Nə edir |
+|---------|---------|
+| `./install.sh` | Yeni quraşdırma (idempotent) |
+| `./install.sh --update` | Git pull + yeniləmə |
+| `./install.sh --force` | Tam yenidən qurma |
+| `./install.sh --scripts-only` | Yalnız `~/.local/bin/vc-*` |
+| `./install.sh --help` | Yardım |
+
+### Uninstall
+
+```bash
+rm -rf ~/.local/bin/vc* ~/.local/venvs/vc ~/.config/vc-aliases.sh
+rm -rf ~/.config/fish/conf.d/vc.fish ~/.vivaldi-dashboard
+rm -f ~/.config/vivaldi-cockpit-version
+systemctl --user disable --now vivaldi-{health,brief}.timer
 ```
 
 The installer will:
