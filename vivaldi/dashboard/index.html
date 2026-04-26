@@ -61,8 +61,8 @@ body{background:var(--base);color:var(--text);min-height:100vh;overflow-x:hidden
 <body>
 <div class="container">
 <div class="hero">
-<div class="greeting"><h1 id="greeting">Welcome back</h1><p id="subgreeting">Bu gün nə yaratacağıq?</p></div>
-<div class="clock"><div class="time" id="time">--:--</div><div class="date" id="date">—</div><div class="weather" id="weather">Hava yüklənir...</div></div>
+<div class="greeting"><h1 id="greeting">Welcome back</h1><p id="subgreeting">What shall we build today?</p></div>
+<div class="clock"><div class="time" id="time">--:--</div><div class="date" id="date">—</div><div class="weather" id="weather">Loading weather...</div></div>
 </div>
 <div class="search-bar">
 <select id="engine">
@@ -79,47 +79,47 @@ body{background:var(--base);color:var(--text);min-height:100vh;overflow-x:hidden
 </select>
 <input id="searchInput" placeholder="Axtar... (Ctrl+K)" autofocus>
 </div>
-<div class="section" style="margin-bottom:24px"><h2>🗂️ Workspaces — Sürətli Açılış</h2>
+<div class="section" style="margin-bottom:24px"><h2>🗂️ Workspaces — Quick Switch</h2>
 <div class="workspaces" id="ws-grid"></div>
 </div>
 <div class="grid">
 <div>
-<div class="section" style="margin-bottom:24px"><h2>🤖 AI Modellər — Bir Klikdə</h2>
+<div class="section" style="margin-bottom:24px"><h2>🤖 AI Models — One Click</h2>
 <div class="ai-grid" id="ai-grid"></div>
 </div>
-<div class="section"><h2>📰 Hacker News — Bu Gün</h2>
-<ul class="hn-list" id="hn-list"><li class="hn-item"><a>Yüklənir...</a></li></ul>
+<div class="section"><h2>📰 Hacker News — Today</h2>
+<ul class="hn-list" id="hn-list"><li class="hn-item"><a>Loading...</a></li></ul>
 </div>
 </div>
 <div>
-<div class="widget"><div class="section"><h2>📜 Günün AZ Atalar Sözü</h2>
-<div class="proverb" id="proverb">Yüklənir...</div></div></div>
-<div class="widget"><div class="section"><h2>🎯 AI Prompt Günün</h2>
+<div class="widget"><div class="section"><h2>📜 Daily Proverb</h2>
+<div class="proverb" id="proverb">Loading...</div></div></div>
+<div class="widget"><div class="section"><h2>🎯 Prompt of the Day</h2>
 <div class="prompt-card">
 <div class="label" id="prompt-label">Code Review</div>
 <div class="text" id="prompt-text">...</div>
-<button id="btn-copy">📋 Kopyala</button>
-<button id="btn-next">↻ Sonrakı</button>
+<button id="btn-copy">📋 Copy</button>
+<button id="btn-next">↻ Next</button>
 </div></div></div>
 <div class="widget"><div class="section"><h2>🚀 GitHub Pulse</h2>
-<div id="ghpulse" style="font-size:13px;color:var(--subtext)">Yüklənir...</div>
+<div id="ghpulse" style="font-size:13px;color:var(--subtext)">Loading...</div>
 </div></div>
 </div>
 </div>
 <div class="stats">
-<div class="stat"><div class="value">390</div><div class="label">Bookmark</div></div>
-<div class="stat"><div class="value">10</div><div class="label">Workspace</div></div>
-<div class="stat"><div class="value">42</div><div class="label">Shortcut</div></div>
-<div class="stat"><div class="value">15</div><div class="label">Extension</div></div>
+<div class="stat"><div class="value">390</div><div class="label">BOOKMARKS</div></div>
+<div class="stat"><div class="value">10</div><div class="label">WORKSPACES</div></div>
+<div class="stat"><div class="value">42</div><div class="label">SHORTCUTS</div></div>
+<div class="stat"><div class="value">15</div><div class="label">EXTENSIONS</div></div>
 </div>
-<div class="footer">Vivaldi 7.9 + Catppuccin Mocha · Setup by User · 2026<br><a href="https://github.com/DarkTLord/vivaldi-cockpit">📖 GitHub Repo</a></div>
+<div class="footer">Vivaldi 7.9 + Catppuccin Mocha · 2026
 </div>
 <script>
 const $ = id => document.getElementById(id);
 
 // ═══ CLOCK ═══
-const days = ['Bazar','Bazar ertəsi','Çərşənbə axşamı','Çərşənbə','Cümə axşamı','Cümə','Şənbə'];
-const months = ['Yanvar','Fevral','Mart','Aprel','May','İyun','İyul','Avqust','Sentyabr','Oktyabr','Noyabr','Dekabr'];
+const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function tick(){
   const d = new Date();
   $('time').textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
@@ -129,35 +129,35 @@ tick(); setInterval(tick, 30000);
 
 // ═══ GREETING ═══
 const h = new Date().getHours();
-let g='Welcome back', sg='Bu gün nə yaratacağıq?';
-if(h<6){g='Late night';sg='Hələ də işləyirik?';}
-else if(h<12){g='Good morning';sg='Bu gün nə yaratacağıq?';}
-else if(h<17){g='Welcome back';sg='Günortan xeyirli olsun';}
-else if(h<22){g='Good evening';sg='Necə getdi günün?';}
-else{g='Good night';sg='İstirahət vaxtı yaxınlaşır';}
+let g='Welcome back', sg='What shall we build today?';
+if(h<6){g='Late night';sg='Still working?';}
+else if(h<12){g='Good morning';sg='What shall we build today?';}
+else if(h<17){g='Welcome back';sg='Hope your day is going well';}
+else if(h<22){g='Good evening';sg='How was your day?';}
+else{g='Good night';sg='Time to wind down';}
 $('greeting').textContent = g;
 $('subgreeting').textContent = sg;
 
 // ═══ HAVA (open-meteo — clean JSON, no HTML pollution) ═══
 const wmoMap = {
-  0:'☀️ Aydın',1:'🌤️ Az buludlu',2:'⛅ Buludlu',3:'☁️ Tutqun',
-  45:'🌫️ Duman',48:'🌫️ Duman',
-  51:'🌦️ Çisəkli',53:'🌦️ Çisəkli',55:'🌦️ Şiddətli çisək',
-  61:'🌧️ Yüngül yağış',63:'🌧️ Yağış',65:'🌧️ Şiddətli yağış',
-  71:'🌨️ Yüngül qar',73:'🌨️ Qar',75:'❄️ Şiddətli qar',
-  77:'🌨️ Qar dənələri',
-  80:'🌦️ Leysan',81:'🌧️ Leysan',82:'⛈️ Şiddətli leysan',
-  85:'🌨️ Qar leysanı',86:'❄️ Şiddətli qar leysanı',
-  95:'⛈️ Tufan',96:'⛈️ Tufan + dolu',99:'⛈️ Şiddətli tufan'
+  0:'☀️ Clear',1:'🌤️ Mostly clear',2:'⛅ Cloudy',3:'☁️ Overcast',
+  45:'🌫️ Foggy',48:'🌫️ Foggy',
+  51:'🌦️ Drizzle',53:'🌦️ Drizzle',55:'🌦️ Heavy drizzle',
+  61:'🌧️ Light rain',63:'🌧️ Rain',65:'🌧️ Heavy rain',
+  71:'🌨️ Light snow',73:'🌨️ Snow',75:'❄️ Heavy snow',
+  77:'🌨️ Snow grains',
+  80:'🌦️ Showers',81:'🌧️ Showers',82:'⛈️ Heavy showers',
+  85:'🌨️ Snow showers',86:'❄️ Heavy snow showers',
+  95:'⛈️ Thunderstorm',96:'⛈️ Thunderstorm + hail',99:'⛈️ Severe thunderstorm'
 };
 fetch('https://api.open-meteo.com/v1/forecast?latitude=40.4093&longitude=49.8671&current=temperature_2m,wind_speed_10m,weather_code&timezone=Asia/Baku')
   .then(r=>r.json())
   .then(d=>{
     const c = d.current;
     const desc = wmoMap[c.weather_code] || '🌍';
-    $('weather').textContent = `🌍 Bakı: ${desc} ${Math.round(c.temperature_2m)}°C · 💨 ${Math.round(c.wind_speed_10m)} km/h`;
+    $('weather').textContent = `🌍 Local: ${desc} ${Math.round(c.temperature_2m)}°C · 💨 ${Math.round(c.wind_speed_10m)} km/h`;
   })
-  .catch(()=>$('weather').textContent='🌍 Hava məlumatı yüklənmədi');
+  .catch(()=>$('weather').textContent='🌍 Weather unavailable');
 
 // ═══ SEARCH ═══
 const si = $('searchInput');
@@ -250,24 +250,24 @@ fetch('https://hacker-news.firebaseio.com/v0/topstories.json')
 
 // ═══ AZ PROVERBS ═══
 const proverbs = [
-  "Vaxt qızıldan qiymətlidir.",
-  "Bir baxışın min söhbəti var.",
-  "Tək əldən səs çıxmaz.",
-  "Su axar, çuxurunu tapar.",
-  "Gözəl olan dünya zəhmətə dəyər.",
-  "İti gör daşı yığ.",
-  "Yüz dəfə eşitməkdənsə, bir dəfə görmək yaxşıdır.",
-  "Bilik insanın əbədi zənginliyidir.",
-  "Hər işin öz vaxtı var.",
-  "Doğru söz acı olar.",
-  "İlk addım ən çətinidir.",
-  "Səbr — uğurun açarıdır.",
-  "Tələsən təngnəfəs olar.",
-  "Düşmən gücdə deyil, ağılda olar.",
-  "Az danış, çox dinlə.",
-  "Yaxşı dost gümüşdən qiymətlidir.",
-  "Acı həqiqət şirin yalandan yaxşıdır.",
-  "Ağıl yaşda deyil, başdadır."
+  "A single hand cannot make a sound.",
+  "Time is more valuable than gold.",
+  "A good friend is more precious than silver.",
+  "Patience is the key to success.",
+  "Listen more, talk less.",
+  "The first step is the hardest.",
+  "Truth is bitter but valuable.",
+  "Knowledge is the eternal wealth of humans.",
+  "Every task has its time.",
+  "Wisdom is in the head, not in age.",
+  "He who hurries gets out of breath.",
+  "The enemy is in the mind, not in strength.",
+  "One look says a thousand words.",
+  "Water finds its way through any crevice.",
+  "He who sees the dog picks up the stone.",
+  "Better to see once than hear a hundred times.",
+  "Beauty in the world is worth the effort.",
+  "The bitter truth is better than a sweet lie."
 ];
 const dayIdx = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0))/86400000) % proverbs.length;
 $('proverb').textContent = '« ' + proverbs[dayIdx] + ' »';

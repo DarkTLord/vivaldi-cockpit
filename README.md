@@ -17,6 +17,20 @@
 
 ---
 
+## 📸 Screenshots
+
+### 🏠 Custom New Tab Dashboard
+*Catppuccin Mocha · time-based greeting · live weather · HN top 5 · daily proverbs · AI prompt of the day · GitHub pulse*
+
+![Custom Dashboard](docs/screenshots/01-dashboard.png)
+
+### 🌐 vc-server Web Cockpit (localhost:8001)
+*FastAPI + WebSocket · live metrics · universal search · AI chat · focus mode · workspace snapshots*
+
+![Cockpit Server](docs/screenshots/02-cockpit.png)
+
+---
+
 ## ✨ Highlights
 
 - **🎨 17 custom CSS mods** — Catppuccin Mocha + glassmorphism + animations
