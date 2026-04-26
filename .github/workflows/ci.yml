@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    name: Shell Script Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          scandir: './scripts'
+          additional_files: 'install.sh update.sh'
+          ignore_paths: 'scripts/vc-voice-whisper.py scripts/vc-bookmark-health.py'
+
+  install-test:
+    name: Install Script Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fzf jq python3-venv
+      - name: Test scripts-only install
+        run: |
+          chmod +x install.sh
+          ./install.sh --scripts-only
+          ls -la ~/.local/bin/vc* | head -10
+      - name: Verify version file
+        run: |
+          test -f ~/.config/vivaldi-cockpit-version
+      - name: Test idempotent re-install
+        run: ./install.sh --scripts-only
+
+  markdown-lint:
+    name: Markdown Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v15
+        with:
+          globs: '**/*.md'
+          fix: false
+        continue-on-error: true

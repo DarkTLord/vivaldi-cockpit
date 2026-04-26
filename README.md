@@ -3,10 +3,17 @@
 > **A complete browser power-user setup combining Vivaldi 7.9, Catppuccin Mocha,
 > Azerbaijani UI, local AI, voice control, and a custom CLI dashboard.**
 
+[![CI](https://github.com/DarkTLord/vivaldi-cockpit/actions/workflows/ci.yml/badge.svg)](https://github.com/DarkTLord/vivaldi-cockpit/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/DarkTLord/vivaldi-cockpit?style=flat-square&color=cba6f7)](https://github.com/DarkTLord/vivaldi-cockpit/releases)
+[![Stars](https://img.shields.io/github/stars/DarkTLord/vivaldi-cockpit?style=flat-square&color=f9e2af)](https://github.com/DarkTLord/vivaldi-cockpit/stargazers)
+[![Last Commit](https://img.shields.io/github/last-commit/DarkTLord/vivaldi-cockpit?style=flat-square&color=89b4fa)](https://github.com/DarkTLord/vivaldi-cockpit/commits/main)
+[![License](https://img.shields.io/badge/License-MIT-89b4fa?style=flat-square)](LICENSE)
+
 ![Catppuccin](https://img.shields.io/badge/Theme-Catppuccin%20Mocha-cba6f7?style=flat-square)
 ![Vivaldi](https://img.shields.io/badge/Vivaldi-7.9-ef3939?style=flat-square)
 ![Local AI](https://img.shields.io/badge/AI-Ollama%20Local-a6e3a1?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-89b4fa?style=flat-square)
+![Voice](https://img.shields.io/badge/Voice-Whisper%20Local-fab387?style=flat-square)
+![Language](https://img.shields.io/badge/Lang-Azerbaijani-f5c2e7?style=flat-square)
 
 ---
 
